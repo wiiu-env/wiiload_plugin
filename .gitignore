@@ -3,3 +3,5 @@ build/*
 sysapp.layout
 sysapp.cbp
 sysapp.cscope_file_list
+*.wps
+*.elf
