@@ -3,23 +3,17 @@
 #include <vector>
 #include <string.h>
 #include <zlib.h>
-#include <libgen.h>
 #include <sysapp/launch.h>
 
 #include <coreinit/messagequeue.h>
 #include <coreinit/ios.h>
 
 #include "TcpReceiver.h"
-#include "fs/CFile.hpp"
 #include "fs/FSUtils.h"
-#include "utils/logger.h"
-#include "utils/StringTools.h"
 #include "utils/net.h"
 #include "utils/utils.h"
-#include "plugin/PluginInformationUtils.h"
-
-#define WUPS_TEMP_PLUGIN_PATH "fs:/vol/external01/wiiu/plugins/temp/"
-#define WUPS_TEMP_PLUGIN_FILE "fs:/vol/external01/wiiu/plugins/temp/temp.mod"
+#include <wups_backend/PluginUtils.h>
+#include <coreinit/debug.h>
 
 #define RPX_TEMP_PATH "fs:/vol/external01/wiiu/apps/"
 #define RPX_TEMP_FILE "fs:/vol/external01/wiiu/apps/temp.rpx"
@@ -241,15 +235,54 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
             fileSize = fileSizeUnc;
         }
 
-        if(inflatedData[0x7] == 0xCA && inflatedData[0x8] == 0xFE){
+        if(inflatedData[0x7] == 0xCA && inflatedData[0x8] == 0xFE && inflatedData[0x9] != 0xDE && inflatedData[0xA] != 0xAD){
             DEBUG_FUNCTION_LINE("Try to load a rpx\n");
             FSUtils::CreateSubfolder(RPX_TEMP_PATH);
             res = FSUtils::saveBufferToFile(RPX_TEMP_FILE,inflatedData, fileSize);
             free(inflatedData);
             loadedRPX = true;
-        }else{
-            FSUtils::CreateSubfolder(WUPS_TEMP_PLUGIN_PATH);
-            res = FSUtils::saveBufferToFile(WUPS_TEMP_PLUGIN_FILE,inflatedData, fileSize);
+        }else if(inflatedData[0x7] == 0xCA && inflatedData[0x8] == 0xFE && inflatedData[0x9] == 0xDE && inflatedData[0xA] == 0xAD){
+
+            auto newContainer = PluginUtils::getPluginForBuffer((char*)inflatedData, fileSize);
+            if(newContainer){
+                auto oldPlugins = PluginUtils::getLoadedPlugins(8);
+                std::vector<PluginContainer> finalList;
+
+                finalList.push_back(newContainer.value());
+                for (auto &plugin : oldPlugins) {
+                    if (plugin.metaInformation.getName().compare(newContainer->metaInformation.getName()) == 0 &&
+                        plugin.metaInformation.getAuthor().compare(newContainer->metaInformation.getAuthor()) == 0
+                            ) {
+                        DEBUG_FUNCTION_LINE("Skipping duplicate");
+                        PluginUtils::destroyPluginContainer(plugin);
+                        continue;
+                    }else{
+                        finalList.push_back(plugin);
+                    }
+                }
+
+                for (auto &plugin : finalList) {
+                    DEBUG_FUNCTION_LINE("name: %s\n", plugin.getMetaInformation().getName().c_str());
+                    DEBUG_FUNCTION_LINE("author: %s\n", plugin.getMetaInformation().getAuthor().c_str());
+                    DEBUG_FUNCTION_LINE("handle: %08X\n", plugin.getPluginData().getHandle());
+                    DEBUG_FUNCTION_LINE("====\n");
+                }
+
+                if (PluginUtils::LoadAndLinkOnRestart(finalList) != 0) {
+                    DEBUG_FUNCTION_LINE("Failed to load& link\n");
+                    PluginUtils::destroyPluginContainer(finalList);
+                }else{
+                    PluginUtils::destroyPluginContainer(finalList);
+                    SYSRelaunchTitle(NULL,NULL);
+                }
+
+                free(inflatedData);
+                free(loadAddress);
+
+                return fileSize;
+            }else{
+                DEBUG_FUNCTION_LINE("Failed to parse plugin\n");
+            }
             free(inflatedData);
         }
 
@@ -260,9 +293,8 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
             res = FSUtils::saveBufferToFile(RPX_TEMP_FILE,loadAddress, fileSize);
             free(loadAddress);
             loadedRPX = true;
-        }else{
-            FSUtils::CreateSubfolder(WUPS_TEMP_PLUGIN_PATH);
-            res = FSUtils::saveBufferToFile(WUPS_TEMP_PLUGIN_FILE,loadAddress, fileSize);
+        }else if(loadAddress[0x7] == 0xCA && loadAddress[0x8] == 0xFE && loadAddress[0x9] == 0xDE){
+            OSFatal("Not implemented yet");
             free(loadAddress);
         }
     }
@@ -297,38 +329,6 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
         _SYSLaunchTitleWithStdArgsInNoSplash(titleID, 0);
         return fileSize;
     }
-
-
-    PluginInformation * newFile = PluginInformationUtils::loadPluginInformation("sd:/wiiu/plugins/temp/temp.mod");
-    if(newFile == NULL){
-        return -1;
-    }
-
-    std::vector<PluginInformation *> alreadyLoaded =  PluginInformationUtils::getPluginsLoadedInMemory();
-
-    std::vector<PluginInformation *> newList;
-
-    newList.push_back(newFile);
-
-    for (std::vector<PluginInformation *>::iterator it = alreadyLoaded.begin() ; it != alreadyLoaded.end(); ++it) {
-        PluginInformation * curPlugin = *it;
-        if(curPlugin->getPath().compare(newFile->getPath()) != 0){
-            if(curPlugin->getName().compare(newFile->getName()) == 0 &&
-               curPlugin->getAuthor().compare(newFile->getAuthor()) == 0
-               ){
-                   DEBUG_FUNCTION_LINE("Name and Author of the new plugin are identical to an old one. Loading the new one! %s %s\n",newFile->getName().c_str(),newFile->getAuthor().c_str());
-                   continue;
-               }
-            newList.push_back(curPlugin);
-        }else{
-            DEBUG_FUNCTION_LINE("%s was overridden\n",newFile->getPath().c_str());
-        }
-    }
-
-    PluginInformationUtils::loadAndLinkPluginsOnRestart(newList);
-
-    alreadyLoaded.push_back(newFile);
-    PluginInformationUtils::clearPluginInformation(alreadyLoaded);
 
     SYSRelaunchTitle(NULL,NULL);
 
