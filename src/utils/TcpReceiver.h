@@ -18,6 +18,7 @@ public:
     };
 
     TcpReceiver(int32_t port);
+
     ~TcpReceiver();
 
     //sigslot::signal2<GuiElement *, uint32_t> serverReceiveStart;
@@ -26,8 +27,10 @@ public:
 private:
 
     void executeThread();
+
     int32_t loadToMemory(int32_t clientSocket, uint32_t ipAddress);
-    bool saveFileToSDCard(const char * path, void * buffer,uint32_t size);
+
+    bool saveFileToSDCard(const char *path, void *buffer, uint32_t size);
 
     bool exitRequested;
     int32_t serverPort;

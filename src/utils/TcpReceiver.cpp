@@ -19,15 +19,13 @@
 #define RPX_TEMP_FILE "fs:/vol/external01/wiiu/apps/temp.rpx"
 #define RPX_TEMP_FILE_EX "wiiu/apps/temp.rpx"
 
-extern "C"{
-    uint64_t _SYSGetSystemApplicationTitleId(int32_t);
-    void _SYSLaunchTitleWithStdArgsInNoSplash(uint64_t, uint32_t);
+extern "C" {
+uint64_t _SYSGetSystemApplicationTitleId(int32_t);
+void _SYSLaunchTitleWithStdArgsInNoSplash(uint64_t, uint32_t);
 }
+
 TcpReceiver::TcpReceiver(int32_t port)
-    : CThread(CThread::eAttributeAffCore0)
-    , exitRequested(false)
-    , serverPort(port)
-    , serverSocket(-1) {
+        : CThread(CThread::eAttributeAffCore0), exitRequested(false), serverPort(port), serverSocket(-1) {
 
     resumeThread();
 }
@@ -35,7 +33,7 @@ TcpReceiver::TcpReceiver(int32_t port)
 TcpReceiver::~TcpReceiver() {
     exitRequested = true;
 
-    if(serverSocket >= 0) {
+    if (serverSocket >= 0) {
         shutdown(serverSocket, SHUT_RDWR);
     }
 }
@@ -62,7 +60,7 @@ void TcpReceiver::executeThread() {
 
     socklen_t len;
     int32_t ret;
-    if ((ret = bind(serverSocket, (struct sockaddr *)&bindAddress, 16)) < 0) {
+    if ((ret = bind(serverSocket, (struct sockaddr *) &bindAddress, 16)) < 0) {
         socketclose(serverSocket);
         return;
     }
@@ -80,12 +78,12 @@ void TcpReceiver::executeThread() {
     memset(&clientAddr, 0, sizeof(clientAddr));
     int32_t addrlen = sizeof(struct sockaddr);
 
-    while(!exitRequested) {
+    while (!exitRequested) {
 
         DEBUG_FUNCTION_LINE("\n");
         len = 16;
-        int32_t clientSocket = accept(serverSocket, (struct sockaddr*)&clientAddr, &len);
-        if(clientSocket >= 0) {
+        int32_t clientSocket = accept(serverSocket, (struct sockaddr *) &clientAddr, &len);
+        if (clientSocket >= 0) {
 
             DEBUG_FUNCTION_LINE("\n");
             uint32_t ipAddress = clientAddr.sin_addr.s_addr;
@@ -94,10 +92,10 @@ void TcpReceiver::executeThread() {
             //serverReceiveFinished(this, ipAddress, result);
             socketclose(clientSocket);
 
-            if(result > 0)
+            if (result > 0)
                 break;
         } else {
-            DEBUG_FUNCTION_LINE("Server socket accept failed %i %d\n", clientSocket,wiiu_geterrno());
+            DEBUG_FUNCTION_LINE("Server socket accept failed %i %d\n", clientSocket, wiiu_geterrno());
             OSSleepTicks(OSMicrosecondsToTicks(100000));
         }
     }
@@ -111,7 +109,7 @@ typedef struct __attribute((packed)) {
     uint32_t filesize;
     uint32_t fileoffset;
     char path[256];
-}LOAD_REQUEST;
+} LOAD_REQUEST;
 
 int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
     DEBUG_FUNCTION_LINE("Loading file from ip %08X\n", ipAddress);
@@ -122,10 +120,10 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
     memset(haxx, 0, sizeof(haxx));
     //skip haxx
     recvwait(clientSocket, haxx, sizeof(haxx));
-    recvwait(clientSocket, (unsigned char*)&fileSize, sizeof(fileSize));
+    recvwait(clientSocket, (unsigned char *) &fileSize, sizeof(fileSize));
 
     if (haxx[4] > 0 || haxx[5] > 4) {
-        recvwait(clientSocket, (unsigned char*)&fileSizeUnc, sizeof(fileSizeUnc)); // Compressed protocol, read another 4 bytes
+        recvwait(clientSocket, (unsigned char *) &fileSizeUnc, sizeof(fileSizeUnc)); // Compressed protocol, read another 4 bytes
     }
 
     struct in_addr in;
@@ -134,21 +132,21 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
 
     DEBUG_FUNCTION_LINE("transfer start\n");
 
-    unsigned char* loadAddress = (unsigned char*)memalign(0x40, fileSize);
-    if(!loadAddress) {
+    unsigned char *loadAddress = (unsigned char *) memalign(0x40, fileSize);
+    if (!loadAddress) {
         OSSleepTicks(OSSecondsToTicks(1));
         return NOT_ENOUGH_MEMORY;
     }
 
     // Copy rpl in memory
-    while(bytesRead < fileSize) {
+    while (bytesRead < fileSize) {
 
         uint32_t blockSize = 0x1000;
-        if(blockSize > (fileSize - bytesRead))
+        if (blockSize > (fileSize - bytesRead))
             blockSize = fileSize - bytesRead;
 
         int32_t ret = recv(clientSocket, loadAddress + bytesRead, blockSize, 0);
-        if(ret <= 0) {
+        if (ret <= 0) {
             DEBUG_FUNCTION_LINE("Failure on reading file\n");
             break;
         }
@@ -156,7 +154,7 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
         bytesRead += ret;
     }
 
-    if(bytesRead != fileSize) {
+    if (bytesRead != fileSize) {
         free(loadAddress);
         DEBUG_FUNCTION_LINE("File loading not finished, %i of %i bytes received\n", bytesRead, fileSize);
         return FILE_READ_ERROR;
@@ -167,7 +165,7 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
 
     // Do we need to unzip this thing?
     if (haxx[4] > 0 || haxx[5] > 4) {
-        unsigned char* inflatedData = NULL;
+        unsigned char *inflatedData = NULL;
 
         // We need to unzip...
         if (loadAddress[0] == 'P' && loadAddress[1] == 'K' && loadAddress[2] == 0x03 && loadAddress[3] == 0x04) {
@@ -175,8 +173,8 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
             //! mhmm this is incorrect, it has to parse the zip
 
             // Section is compressed, inflate
-            inflatedData = (unsigned char*)malloc(fileSizeUnc);
-            if(!inflatedData) {
+            inflatedData = (unsigned char *) malloc(fileSizeUnc);
+            if (!inflatedData) {
                 free(loadAddress);
 
                 return NOT_ENOUGH_MEMORY;
@@ -199,10 +197,10 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
             }
 
             s.avail_in = fileSize;
-            s.next_in = (Bytef *)(&loadAddress[0]);
+            s.next_in = (Bytef *) (&loadAddress[0]);
 
             s.avail_out = fileSizeUnc;
-            s.next_out = (Bytef *)&inflatedData[0];
+            s.next_out = (Bytef *) &inflatedData[0];
 
             ret = inflate(&s, Z_FINISH);
             if (ret != Z_OK && ret != Z_STREAM_END) {
@@ -216,16 +214,16 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
             fileSize = fileSizeUnc;
         } else {
             // Section is compressed, inflate
-            inflatedData = (unsigned char*)malloc(fileSizeUnc);
-            if(!inflatedData) {
+            inflatedData = (unsigned char *) malloc(fileSizeUnc);
+            if (!inflatedData) {
                 free(loadAddress);
 
                 return NOT_ENOUGH_MEMORY;
             }
 
             uLongf f = fileSizeUnc;
-            int32_t result = uncompress((Bytef*)&inflatedData[0], &f, (Bytef*)loadAddress, fileSize);
-            if(result != Z_OK) {
+            int32_t result = uncompress((Bytef *) &inflatedData[0], &f, (Bytef *) loadAddress, fileSize);
+            if (result != Z_OK) {
                 DEBUG_FUNCTION_LINE("uncompress failed %i\n", result);
 
                 return FILE_READ_ERROR;
@@ -235,16 +233,16 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
             fileSize = fileSizeUnc;
         }
 
-        if(inflatedData[0x7] == 0xCA && inflatedData[0x8] == 0xFE && inflatedData[0x9] != 0xDE && inflatedData[0xA] != 0xAD){
+        if (inflatedData[0x7] == 0xCA && inflatedData[0x8] == 0xFE && inflatedData[0x9] != 0xDE && inflatedData[0xA] != 0xAD) {
             DEBUG_FUNCTION_LINE("Try to load a rpx\n");
             FSUtils::CreateSubfolder(RPX_TEMP_PATH);
-            res = FSUtils::saveBufferToFile(RPX_TEMP_FILE,inflatedData, fileSize);
+            res = FSUtils::saveBufferToFile(RPX_TEMP_FILE, inflatedData, fileSize);
             free(inflatedData);
             loadedRPX = true;
-        }else if(inflatedData[0x7] == 0xCA && inflatedData[0x8] == 0xFE && inflatedData[0x9] == 0xDE && inflatedData[0xA] == 0xAD){
+        } else if (inflatedData[0x7] == 0xCA && inflatedData[0x8] == 0xFE && inflatedData[0x9] == 0xDE && inflatedData[0xA] == 0xAD) {
 
-            auto newContainer = PluginUtils::getPluginForBuffer((char*)inflatedData, fileSize);
-            if(newContainer){
+            auto newContainer = PluginUtils::getPluginForBuffer((char *) inflatedData, fileSize);
+            if (newContainer) {
                 auto oldPlugins = PluginUtils::getLoadedPlugins(8);
                 std::vector<PluginContainer> finalList;
 
@@ -256,7 +254,7 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
                         DEBUG_FUNCTION_LINE("Skipping duplicate");
                         PluginUtils::destroyPluginContainer(plugin);
                         continue;
-                    }else{
+                    } else {
                         finalList.push_back(plugin);
                     }
                 }
@@ -271,39 +269,39 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
                 if (PluginUtils::LoadAndLinkOnRestart(finalList) != 0) {
                     DEBUG_FUNCTION_LINE("Failed to load& link\n");
                     PluginUtils::destroyPluginContainer(finalList);
-                }else{
+                } else {
                     PluginUtils::destroyPluginContainer(finalList);
-                    SYSRelaunchTitle(NULL,NULL);
+                    SYSRelaunchTitle(NULL, NULL);
                 }
 
                 free(inflatedData);
                 free(loadAddress);
 
                 return fileSize;
-            }else{
+            } else {
                 DEBUG_FUNCTION_LINE("Failed to parse plugin\n");
             }
             free(inflatedData);
         }
 
     } else {
-        if(loadAddress[0x7] == 0xCA && loadAddress[0x8] == 0xFE){
+        if (loadAddress[0x7] == 0xCA && loadAddress[0x8] == 0xFE) {
             DEBUG_FUNCTION_LINE("Try to load a rpx\n");
             FSUtils::CreateSubfolder(RPX_TEMP_PATH);
-            res = FSUtils::saveBufferToFile(RPX_TEMP_FILE,loadAddress, fileSize);
+            res = FSUtils::saveBufferToFile(RPX_TEMP_FILE, loadAddress, fileSize);
             free(loadAddress);
             loadedRPX = true;
-        }else if(loadAddress[0x7] == 0xCA && loadAddress[0x8] == 0xFE && loadAddress[0x9] == 0xDE){
+        } else if (loadAddress[0x7] == 0xCA && loadAddress[0x8] == 0xFE && loadAddress[0x9] == 0xDE) {
             OSFatal("Not implemented yet");
             free(loadAddress);
         }
     }
 
-    if(!res) {
+    if (!res) {
         return NOT_ENOUGH_MEMORY;
     }
 
-    if(loadedRPX){
+    if (loadedRPX) {
         LOAD_REQUEST request;
         memset(&request, 0, sizeof(request));
 
@@ -315,12 +313,12 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
 
         strncpy(request.path, RPX_TEMP_FILE_EX, 255);
 
-        int mcpFd = IOS_Open("/dev/mcp", (IOSOpenMode)0);
-        if(mcpFd >= 0) {
+        int mcpFd = IOS_Open("/dev/mcp", (IOSOpenMode) 0);
+        if (mcpFd >= 0) {
             int out = 0;
             IOS_Ioctl(mcpFd, 100, &request, sizeof(request), &out, sizeof(out));
             IOS_Close(mcpFd);
-            if(out == 2) {
+            if (out == 2) {
 
             }
         }
@@ -330,7 +328,7 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
         return fileSize;
     }
 
-    SYSRelaunchTitle(NULL,NULL);
+    SYSRelaunchTitle(NULL, NULL);
 
     return fileSize;
 }

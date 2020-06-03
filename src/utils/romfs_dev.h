@@ -54,7 +54,7 @@ extern "C" {
  * @brief Mounts the Application's RomFS.
  * @param name Device mount name.
  */
-int32_t romfsMount(const char *name, const char * path);
+int32_t romfsMount(const char *name, const char *path);
 
 
 /**
@@ -82,7 +82,7 @@ typedef struct {
     uint64_t offset; ///< Length of the file's data.
 } romfs_fileInfo;
 
-int romfs_GetFileInfoPerPath(const char* romfs, const char *path, romfs_fileInfo* out);
+int romfs_GetFileInfoPerPath(const char *romfs, const char *path, romfs_fileInfo *out);
 
 #ifdef __cplusplus
 }
