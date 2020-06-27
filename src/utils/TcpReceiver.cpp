@@ -228,7 +228,6 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
             DEBUG_FUNCTION_LINE("Try to load a rpx");
             FSUtils::CreateSubfolder(RPX_TEMP_PATH);
             res = FSUtils::saveBufferToFile(RPX_TEMP_FILE, inflatedData, fileSize);
-            free(inflatedData);
             loadedRPX = true;
         } else if (inflatedData[0x7] == 0xCA && inflatedData[0x8] == 0xFE && inflatedData[0x9] == 0xDE && inflatedData[0xA] == 0xAD) {
             auto newContainer = PluginUtils::getPluginForBuffer((char *) inflatedData, fileSize);
@@ -264,28 +263,26 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
                     SYSRelaunchTitle(NULL, NULL);
                 }
 
-                free(inflatedData);
                 free(loadAddress);
-
+                free(inflatedData);
                 return fileSize;
             } else {
                 DEBUG_FUNCTION_LINE("Failed to parse plugin");
             }
-            free(inflatedData);
         }
-
+        free(inflatedData);
     } else {
         if (loadAddress[0x7] == 0xCA && loadAddress[0x8] == 0xFE) {
             DEBUG_FUNCTION_LINE("Try to load a rpx");
             FSUtils::CreateSubfolder(RPX_TEMP_PATH);
             res = FSUtils::saveBufferToFile(RPX_TEMP_FILE, loadAddress, fileSize);
-            free(loadAddress);
             loadedRPX = true;
         } else if (loadAddress[0x7] == 0xCA && loadAddress[0x8] == 0xFE && loadAddress[0x9] == 0xDE) {
             OSFatal("Not implemented yet");
-            free(loadAddress);
         }
     }
+
+    free(loadAddress);
 
     if (!res) {
         return NOT_ENOUGH_MEMORY;
