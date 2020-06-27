@@ -1,6 +1,6 @@
 #include <wups.h>
 #include "utils/TcpReceiver.h"
-#include <whb/libmanager.h>
+#include <whb/log_udp.h>
 
 WUPS_PLUGIN_NAME("Wiiload");
 WUPS_PLUGIN_DESCRIPTION("Wiiload Server");
@@ -14,10 +14,8 @@ TcpReceiver *thread = NULL;
 
 /* Entry point */
 ON_APPLICATION_START(args) {
-    WHBInitializeSocketLibrary();
-
-    log_init();
-    DEBUG_FUNCTION_LINE("Started wiiload thread\n");
+    WHBLogUdpInit();
+    DEBUG_FUNCTION_LINE("Started wiiload thread");
     thread = new TcpReceiver(4299);
 }
 
@@ -30,9 +28,7 @@ void stopThread() {
 
 
 ON_APPLICATION_END() {
-    DEBUG_FUNCTION_LINE("Kill thread\n");
+    DEBUG_FUNCTION_LINE("Kill thread");
     stopThread();
-
-    DEBUG_FUNCTION_LINE("Unmount SD\n");
 }
 
