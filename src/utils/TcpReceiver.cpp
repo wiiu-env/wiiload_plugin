@@ -14,6 +14,7 @@
 #include "utils/utils.h"
 #include <wups_backend/PluginUtils.h>
 #include <coreinit/debug.h>
+#include <coreinit/cache.h>
 
 #define RPX_TEMP_PATH "fs:/vol/external01/wiiu/apps/"
 #define RPX_TEMP_FILE "fs:/vol/external01/wiiu/apps/temp.rpx"
@@ -25,7 +26,7 @@ void _SYSLaunchTitleWithStdArgsInNoSplash(uint64_t, uint32_t);
 }
 
 TcpReceiver::TcpReceiver(int32_t port)
-        : CThread(CThread::eAttributeAffCore0), exitRequested(false), serverPort(port), serverSocket(-1) {
+        : CThread(CThread::eAttributeAffCore1, 16,0x20000), exitRequested(false), serverPort(port), serverSocket(-1) {
 
     resumeThread();
 }
@@ -62,8 +63,6 @@ void TcpReceiver::executeThread() {
         return;
     }
 
-    DEBUG_FUNCTION_LINE("");
-
     if ((ret = listen(serverSocket, 1)) < 0) {
         socketclose(serverSocket);
         return;
@@ -84,7 +83,9 @@ void TcpReceiver::executeThread() {
             socketclose(clientSocket);
 
             if (result > 0)
+            if (result >= 0){
                 break;
+            }
         } else {
             DEBUG_FUNCTION_LINE("Server socket accept failed %i %d", clientSocket, wiiu_geterrno());
             OSSleepTicks(OSMicrosecondsToTicks(100000));
@@ -102,6 +103,7 @@ typedef struct __attribute((packed)) {
     char path[256];
 } LOAD_REQUEST;
 
+extern bool gDoRelaunch;
 int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
     DEBUG_FUNCTION_LINE("Loading file from ip %08X", ipAddress);
 
@@ -260,7 +262,8 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
                     PluginUtils::destroyPluginContainer(finalList);
                 } else {
                     PluginUtils::destroyPluginContainer(finalList);
-                    SYSRelaunchTitle(NULL, NULL);
+                    gDoRelaunch = 1;
+                    DCFlushRange(&gDoRelaunch, sizeof(gDoRelaunch));
                 }
 
                 free(loadAddress);
