@@ -40,7 +40,7 @@ CXXFLAGS	:= $(CFLAGS) -std=gnu++17
 ASFLAGS	:=	-g $(ARCH)
 LDFLAGS	=	-g $(ARCH) $(RPXSPECS) -Wl,-Map,$(notdir $*.map) -T$(WUPS_ROOT)/share/libwupsbackend.ld $(WUPSSPECS)
 
-LIBS	:= -lwups -lwut -lwupsbackend
+LIBS	:= -lwups -lwut -lwupsbackend -lz
 
 #-------------------------------------------------------------------------------
 # list of directories containing libraries, this must be the top level
