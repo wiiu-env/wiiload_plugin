@@ -226,12 +226,12 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
             fileSize = fileSizeUnc;
         }
 
-        if (inflatedData[0x7] == 0xCA && inflatedData[0x8] == 0xFE && inflatedData[0x9] != 0xDE && inflatedData[0xA] != 0xAD) {
+        if (inflatedData[0x7] == 0xCA && inflatedData[0x8] == 0xFE && inflatedData[0x9] != 0x50 && inflatedData[0xA] != 0x4C) {
             DEBUG_FUNCTION_LINE("Try to load a rpx");
             FSUtils::CreateSubfolder(RPX_TEMP_PATH);
             res = FSUtils::saveBufferToFile(RPX_TEMP_FILE, inflatedData, fileSize);
             loadedRPX = true;
-        } else if (inflatedData[0x7] == 0xCA && inflatedData[0x8] == 0xFE && inflatedData[0x9] == 0xDE && inflatedData[0xA] == 0xAD) {
+        } else if (inflatedData[0x7] == 0xCA && inflatedData[0x8] == 0xFE && inflatedData[0x9] == 0x50 && inflatedData[0xA] == 0x4C) {
             auto newContainer = PluginUtils::getPluginForBuffer((char *) inflatedData, fileSize);
             if (newContainer) {
                 auto oldPlugins = PluginUtils::getLoadedPlugins(8);
@@ -280,7 +280,7 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
             FSUtils::CreateSubfolder(RPX_TEMP_PATH);
             res = FSUtils::saveBufferToFile(RPX_TEMP_FILE, loadAddress, fileSize);
             loadedRPX = true;
-        } else if (loadAddress[0x7] == 0xCA && loadAddress[0x8] == 0xFE && loadAddress[0x9] == 0xDE) {
+        } else if (loadAddress[0x7] == 0xCA && loadAddress[0x8] == 0xFE && loadAddress[0x9] == 0x50) {
             OSFatal("Not implemented yet");
         }
     }
