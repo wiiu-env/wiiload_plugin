@@ -5,6 +5,8 @@
 #include <zlib.h>
 #include <sysapp/launch.h>
 
+#include <coreinit/dynload.h>
+
 #include <coreinit/messagequeue.h>
 #include <coreinit/ios.h>
 
@@ -18,7 +20,9 @@
 
 #define RPX_TEMP_PATH "fs:/vol/external01/wiiu/apps/"
 #define RPX_TEMP_FILE "fs:/vol/external01/wiiu/apps/temp.rpx"
+#define WUHB_TEMP_FILE "fs:/vol/external01/wiiu/apps/temp.wuhb"
 #define RPX_TEMP_FILE_EX "wiiu/apps/temp.rpx"
+#define WUHB_TEMP_FILE_EX "wiiu/apps/temp.wuhb"
 
 extern "C" {
 uint64_t _SYSGetSystemApplicationTitleId(int32_t);
@@ -155,6 +159,7 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
 
     bool res = false;
     bool loadedRPX = false;
+    const char *file_path = nullptr;
 
     // Do we need to unzip this thing?
     if (haxx[4] > 0 || haxx[5] > 4) {
@@ -226,10 +231,17 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
             fileSize = fileSizeUnc;
         }
 
-        if (inflatedData[0x7] == 0xCA && inflatedData[0x8] == 0xFE && inflatedData[0x9] != 0x50 && inflatedData[0xA] != 0x4C) {
-            DEBUG_FUNCTION_LINE("Try to load a rpx");
+        if (memcmp(inflatedData, "WUHB", 4) == 0) {
+            DEBUG_FUNCTION_LINE("Try to load a .wuhb");
+            FSUtils::CreateSubfolder(RPX_TEMP_PATH);
+            res = FSUtils::saveBufferToFile(WUHB_TEMP_FILE, inflatedData, fileSize);
+            file_path = WUHB_TEMP_FILE_EX;
+            loadedRPX = true;
+        } else if (inflatedData[0x7] == 0xCA && inflatedData[0x8] == 0xFE && inflatedData[0x9] != 0x50 && inflatedData[0xA] != 0x4C) {
+            DEBUG_FUNCTION_LINE("Try to load a .rpx");
             FSUtils::CreateSubfolder(RPX_TEMP_PATH);
             res = FSUtils::saveBufferToFile(RPX_TEMP_FILE, inflatedData, fileSize);
+            file_path = RPX_TEMP_FILE_EX;
             loadedRPX = true;
         } else if (inflatedData[0x7] == 0xCA && inflatedData[0x8] == 0xFE && inflatedData[0x9] == 0x50 && inflatedData[0xA] == 0x4C) {
             auto newContainer = PluginUtils::getPluginForBuffer((char *) inflatedData, fileSize);
@@ -275,10 +287,17 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
         }
         free(inflatedData);
     } else {
-        if (loadAddress[0x7] == 0xCA && loadAddress[0x8] == 0xFE) {
+        if (memcmp(loadAddress, "WUHB", 4) == 0) {
+            DEBUG_FUNCTION_LINE("Try to load a .wuhb");
+            FSUtils::CreateSubfolder(RPX_TEMP_PATH);
+            res = FSUtils::saveBufferToFile(WUHB_TEMP_FILE, loadAddress, fileSize);
+            file_path = WUHB_TEMP_FILE_EX;
+            loadedRPX = true;
+        } else if (loadAddress[0x7] == 0xCA && loadAddress[0x8] == 0xFE) {
             DEBUG_FUNCTION_LINE("Try to load a rpx");
             FSUtils::CreateSubfolder(RPX_TEMP_PATH);
             res = FSUtils::saveBufferToFile(RPX_TEMP_FILE, loadAddress, fileSize);
+            file_path = RPX_TEMP_FILE_EX;
             loadedRPX = true;
         } else if (loadAddress[0x7] == 0xCA && loadAddress[0x8] == 0xFE && loadAddress[0x9] == 0x50) {
             OSFatal("Not implemented yet");
@@ -292,33 +311,28 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
     }
 
     if (loadedRPX) {
-        LOAD_REQUEST request;
-        memset(&request, 0, sizeof(request));
+        DEBUG_FUNCTION_LINE("Starting a homebrew title");
+        OSDynLoad_Module module;
 
-        DEBUG_FUNCTION_LINE("Loading file %s", RPX_TEMP_FILE_EX);
-        request.command = 0xFC; // IPC_CUSTOM_LOAD_CUSTOM_RPX;
-        request.target = 0;     // LOAD_FILE_TARGET_SD_CARD
-        request.filesize = 0;   // unknown
-        request.fileoffset = 0; //
-
-        strncpy(request.path, RPX_TEMP_FILE_EX, 255);
-
-        int mcpFd = IOS_Open("/dev/mcp", (IOSOpenMode) 0);
-        if (mcpFd >= 0) {
-            int out = 0;
-            IOS_Ioctl(mcpFd, 100, &request, sizeof(request), &out, sizeof(out));
-            IOS_Close(mcpFd);
-            if (out == 2) {
-
-            }
+        OSDynLoad_Error dyn_res = OSDynLoad_Acquire("homebrew_rpx_loader", &module);
+        if (dyn_res != OS_DYNLOAD_OK) {
+            OSFatal("Missing RPXLoader module");
         }
+
+        bool (*loadRPXFromSDOnNextLaunch)(const std::string &path);
+        dyn_res = OSDynLoad_FindExport(module, false, "loadRPXFromSDOnNextLaunch", reinterpret_cast<void **>(&loadRPXFromSDOnNextLaunch));
+        if (dyn_res != OS_DYNLOAD_OK) {
+            OSFatal("Failed to find export loadRPXFromSDOnNextLaunch");
+        }
+
+        loadRPXFromSDOnNextLaunch(file_path);
 
         uint64_t titleID = _SYSGetSystemApplicationTitleId(8);
         _SYSLaunchTitleWithStdArgsInNoSplash(titleID, 0);
         return fileSize;
     }
 
-    SYSRelaunchTitle(NULL, NULL);
+    SYSRelaunchTitle(0, nullptr);
 
     return fileSize;
 }

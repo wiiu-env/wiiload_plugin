@@ -40,13 +40,13 @@ CXXFLAGS	:= $(CFLAGS) -std=gnu++17
 ASFLAGS	:=	-g $(ARCH)
 LDFLAGS	=	-g $(ARCH) $(RPXSPECS) -Wl,-Map,$(notdir $*.map) -T$(WUPS_ROOT)/share/libwupsbackend.ld $(WUPSSPECS)
 
-LIBS	:= -lwups -lwut -lwupsbackend -lz
+LIBS	:= -lwups -lwut -lwupsbackend -lz -lromfs
 
 #-------------------------------------------------------------------------------
 # list of directories containing libraries, this must be the top level
 # containing include and lib
 #-------------------------------------------------------------------------------
-LIBDIRS	:= $(PORTLIBS) $(WUPS_ROOT) $(WUT_ROOT)
+LIBDIRS	:= $(PORTLIBS) $(WUPS_ROOT) $(WUT_ROOT) $(WUT_ROOT)/usr
 
 #-------------------------------------------------------------------------------
 # no real need to edit anything past this point unless you need to add additional
