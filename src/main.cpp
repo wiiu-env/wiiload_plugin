@@ -12,34 +12,23 @@ WUPS_PLUGIN_LICENSE("GPL");
 
 WUPS_USE_WUT_CRT()
 
-TcpReceiver *thread = NULL;
+TcpReceiver *thread = nullptr;
 
 /* Entry point */
 ON_APPLICATION_START(args) {
     WHBLogUdpInit();
-    DEBUG_FUNCTION_LINE("Started wiiload thread");
+    DEBUG_FUNCTION_LINE("Start wiiload thread");
     thread = new TcpReceiver(4299);
 }
 
 void stopThread() {
-    if (thread != NULL) {
+    if (thread != nullptr) {
         delete thread;
-        thread = NULL;
+        thread = nullptr;
     }
 }
 
 ON_APPLICATION_END() {
-    DEBUG_FUNCTION_LINE("Kill thread");
+    DEBUG_FUNCTION_LINE("Kill wiiload thread");
     stopThread();
-}
-
-bool gDoRelaunch __attribute__((section(".data"))) = 0;
-
-ON_VYSNC() {
-    // On each frame check if we want to exit.
-    if(gDoRelaunch){
-        SYSRelaunchTitle(0, NULL);
-        gDoRelaunch = 0;
-        DCFlushRange(&gDoRelaunch, sizeof(gDoRelaunch));
-    }
 }

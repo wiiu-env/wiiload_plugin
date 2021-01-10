@@ -6,6 +6,7 @@
 #include <sysapp/launch.h>
 
 #include <coreinit/dynload.h>
+#include <coreinit/title.h>
 
 #include <coreinit/messagequeue.h>
 #include <coreinit/ios.h>
@@ -99,13 +100,6 @@ void TcpReceiver::executeThread() {
     socketclose(serverSocket);
 }
 
-typedef struct __attribute((packed)) {
-    uint32_t command;
-    uint32_t target;
-    uint32_t filesize;
-    uint32_t fileoffset;
-    char path[256];
-} LOAD_REQUEST;
 
 extern bool gDoRelaunch;
 int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
@@ -251,8 +245,8 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
 
                 finalList.push_back(newContainer.value());
                 for (auto &plugin : oldPlugins) {
-                    if (plugin.metaInformation.getName().compare(newContainer->metaInformation.getName()) == 0 &&
-                        plugin.metaInformation.getAuthor().compare(newContainer->metaInformation.getAuthor()) == 0
+                    if (plugin.metaInformation.getName() == newContainer->metaInformation.getName() &&
+                        plugin.metaInformation.getAuthor() == newContainer->metaInformation.getAuthor()
                             ) {
                         DEBUG_FUNCTION_LINE("Skipping duplicate");
                         PluginUtils::destroyPluginContainer(plugin);
@@ -270,16 +264,17 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
                 }
 
                 if (PluginUtils::LoadAndLinkOnRestart(finalList) != 0) {
-                    DEBUG_FUNCTION_LINE("Failed to load& link");
-                    PluginUtils::destroyPluginContainer(finalList);
+                    DEBUG_FUNCTION_LINE("Failed to load & link");
                 } else {
-                    PluginUtils::destroyPluginContainer(finalList);
-                    gDoRelaunch = 1;
-                    DCFlushRange(&gDoRelaunch, sizeof(gDoRelaunch));
+                    //gDoRelaunch = true;
+                    //DCFlushRange(&gDoRelaunch, sizeof(gDoRelaunch));
                 }
+                PluginUtils::destroyPluginContainer(finalList);
 
                 free(loadAddress);
                 free(inflatedData);
+
+                _SYSLaunchTitleWithStdArgsInNoSplash(OSGetTitleID(), 0);
                 return fileSize;
             } else {
                 DEBUG_FUNCTION_LINE("Failed to parse plugin");
