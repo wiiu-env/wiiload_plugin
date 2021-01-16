@@ -11,6 +11,7 @@ TOPDIR ?= $(CURDIR)
 include $(DEVKITPRO)/wups/share/wups_rules
 
 WUT_ROOT := $(DEVKITPRO)/wut
+WUMS_ROOT := $(DEVKITPRO)/wums
 
 #-------------------------------------------------------------------------------
 # TARGET is the name of the output
@@ -38,15 +39,15 @@ CFLAGS	+=	$(INCLUDE) -D__WIIU__ -D__WUT__ -D__WUPS__
 CXXFLAGS	:= $(CFLAGS) -std=gnu++17
 
 ASFLAGS	:=	-g $(ARCH)
-LDFLAGS	=	-g $(ARCH) $(RPXSPECS) -Wl,-Map,$(notdir $*.map) -T$(WUPS_ROOT)/share/libwupsbackend.ld $(WUPSSPECS)
+LDFLAGS	=	-g $(ARCH) $(RPXSPECS) -Wl,-Map,$(notdir $*.map) -T$(WUPS_ROOT)/share/libwupsbackend.ld -T$(WUMS_ROOT)/share/librpxloader.ld $(WUPSSPECS)
 
-LIBS	:= -lwups -lwut -lwupsbackend -lz
+LIBS	:= -lwups -lwut -lwupsbackend -lz -lrpxloader
 
 #-------------------------------------------------------------------------------
 # list of directories containing libraries, this must be the top level
 # containing include and lib
 #-------------------------------------------------------------------------------
-LIBDIRS	:= $(PORTLIBS) $(WUPS_ROOT) $(WUT_ROOT)
+LIBDIRS	:= $(PORTLIBS) $(WUPS_ROOT) $(WUT_ROOT) $(WUMS_ROOT)
 
 #-------------------------------------------------------------------------------
 # no real need to edit anything past this point unless you need to add additional

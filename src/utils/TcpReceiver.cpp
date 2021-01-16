@@ -18,6 +18,7 @@
 #include <wups_backend/PluginUtils.h>
 #include <coreinit/debug.h>
 #include <coreinit/cache.h>
+#include <rpxloader.h>
 
 #define RPX_TEMP_PATH "fs:/vol/external01/wiiu/apps/"
 #define RPX_TEMP_FILE "fs:/vol/external01/wiiu/apps/temp.rpx"
@@ -314,21 +315,8 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
     }
 
     if (loadedRPX) {
-        DEBUG_FUNCTION_LINE("Starting a homebrew title");
-        OSDynLoad_Module module;
-
-        OSDynLoad_Error dyn_res = OSDynLoad_Acquire("homebrew_rpx_loader", &module);
-        if (dyn_res != OS_DYNLOAD_OK) {
-            OSFatal("Missing RPXLoader module");
-        }
-
-        bool (*loadRPXFromSDOnNextLaunch)(const std::string &path);
-        dyn_res = OSDynLoad_FindExport(module, false, "loadRPXFromSDOnNextLaunch", reinterpret_cast<void **>(&loadRPXFromSDOnNextLaunch));
-        if (dyn_res != OS_DYNLOAD_OK) {
-            OSFatal("Failed to find export loadRPXFromSDOnNextLaunch");
-        }
-
-        loadRPXFromSDOnNextLaunch(file_path);
+        DEBUG_FUNCTION_LINE("Starting a homebrew title!");
+        RL_LoadFromSDOnNextLaunch(file_path);
 
         uint64_t titleID = _SYSGetSystemApplicationTitleId(8);
         _SYSLaunchTitleWithStdArgsInNoSplash(titleID, 0);
