@@ -22,8 +22,10 @@
 #define RPX_TEMP_PATH "fs:/vol/external01/wiiu/apps/"
 #define RPX_TEMP_FILE "fs:/vol/external01/wiiu/apps/temp.rpx"
 #define WUHB_TEMP_FILE "fs:/vol/external01/wiiu/apps/temp.wuhb"
+#define WUHB_TEMP_FILE_2 "fs:/vol/external01/wiiu/apps/temp2.wuhb"
 #define RPX_TEMP_FILE_EX "wiiu/apps/temp.rpx"
 #define WUHB_TEMP_FILE_EX "wiiu/apps/temp.wuhb"
+#define WUHB_TEMP_FILE_2_EX "wiiu/apps/temp2.wuhb"
 
 extern "C" {
 uint64_t _SYSGetSystemApplicationTitleId(int32_t);
@@ -230,6 +232,12 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
             FSUtils::CreateSubfolder(RPX_TEMP_PATH);
             res = FSUtils::saveBufferToFile(WUHB_TEMP_FILE, inflatedData, fileSize);
             file_path = WUHB_TEMP_FILE_EX;
+            if(!res){
+                // temp.wuhb might be mounted, let's try temp2.wuhb
+                res = FSUtils::saveBufferToFile(WUHB_TEMP_FILE_2, inflatedData, fileSize);
+                file_path = WUHB_TEMP_FILE_2_EX;
+            }
+
             loadedRPX = true;
         } else if (inflatedData[0x7] == 0xCA && inflatedData[0x8] == 0xFE && inflatedData[0x9] != 0x50 && inflatedData[0xA] != 0x4C) {
             DEBUG_FUNCTION_LINE("Try to load a .rpx");
