@@ -10,12 +10,12 @@ WUPS_PLUGIN_VERSION("0.1");
 WUPS_PLUGIN_AUTHOR("Maschell");
 WUPS_PLUGIN_LICENSE("GPL");
 
-WUPS_USE_WUT_CRT()
+WUPS_USE_WUT_DEVOPTAB()
 
 TcpReceiver *thread = nullptr;
 
 /* Entry point */
-ON_APPLICATION_START(args) {
+ON_APPLICATION_START() {
     WHBLogUdpInit();
     DEBUG_FUNCTION_LINE("Start wiiload thread");
     thread = new TcpReceiver(4299);
@@ -28,7 +28,7 @@ void stopThread() {
     }
 }
 
-ON_APPLICATION_END() {
+ON_APPLICATION_REQUESTS_EXIT() {
     DEBUG_FUNCTION_LINE("Kill wiiload thread");
     stopThread();
 }
