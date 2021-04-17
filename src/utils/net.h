@@ -2,11 +2,21 @@
 #define _UTILS_NET_H_
 
 #include <stdint.h>
-#include <nsysnet/socket.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#include <stdint.h>
+#include <stdbool.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <errno.h>
+#include <stdio.h>
 
 int32_t recvwait(int32_t sock, void *buffer, int32_t len);
 

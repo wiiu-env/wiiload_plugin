@@ -67,12 +67,12 @@ void TcpReceiver::executeThread() {
     socklen_t len;
     int32_t ret;
     if ((ret = bind(serverSocket, (struct sockaddr *) &bindAddress, 16)) < 0) {
-        socketclose(serverSocket);
+        close(serverSocket);
         return;
     }
 
     if ((ret = listen(serverSocket, 1)) < 0) {
-        socketclose(serverSocket);
+        close(serverSocket);
         return;
     }
 
@@ -88,19 +88,19 @@ void TcpReceiver::executeThread() {
             //serverReceiveStart(this, ipAddress);
             int32_t result = loadToMemory(clientSocket, ipAddress);
             //serverReceiveFinished(this, ipAddress, result);
-            socketclose(clientSocket);
+            close(clientSocket);
 
             if (result > 0)
             if (result >= 0){
                 break;
             }
         } else {
-            DEBUG_FUNCTION_LINE("Server socket accept failed %i %d", clientSocket, wiiu_geterrno());
+            DEBUG_FUNCTION_LINE("Server socket accept failed %i %d", clientSocket, errno);
             OSSleepTicks(OSMicrosecondsToTicks(100000));
         }
     }
 
-    socketclose(serverSocket);
+    close(serverSocket);
 }
 
 
