@@ -7,6 +7,7 @@ int32_t recvwait(int32_t sock, void *buffer, int32_t len) {
     while (socket_lock) {
         usleep(1000);
     }
+    socket_lock = 1;
     int32_t ret;
     while (len > 0) {
         ret = recv(sock, buffer, len, 0);
@@ -45,6 +46,7 @@ int32_t checkbyte(int32_t sock) {
     while (socket_lock) {
         usleep(1000);
     }
+    socket_lock = 1;
     unsigned char buffer[1];
     int32_t ret;
 
@@ -61,6 +63,7 @@ int32_t sendwait(int32_t sock, const void *buffer, int32_t len) {
     while (socket_lock) {
         usleep(1000);
     }
+    socket_lock = 1;
     int32_t ret;
     while (len > 0) {
         // For some reason the send blocks/crashes if the buffer is too big..

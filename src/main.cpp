@@ -1,8 +1,6 @@
 #include <wups.h>
 #include "utils/TcpReceiver.h"
 #include <whb/log_udp.h>
-#include <coreinit/cache.h>
-#include <sysapp/launch.h>
 
 WUPS_PLUGIN_NAME("Wiiload");
 WUPS_PLUGIN_DESCRIPTION("Wiiload Server");

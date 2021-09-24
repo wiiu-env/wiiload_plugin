@@ -80,7 +80,7 @@ BOOL DirList::InternalLoadPath(std::string &folderpath) {
     if (folderpath.size() < 3)
         return false;
 
-    struct dirent *dirent = NULL;
+    struct dirent *dirent = nullptr;
     DIR *dir = NULL;
 
     dir = opendir(folderpath.c_str());
@@ -152,7 +152,7 @@ void DirList::ClearList() {
     for (uint32_t i = 0; i < FileInfo.size(); ++i) {
         if (FileInfo[i].FilePath) {
             free(FileInfo[i].FilePath);
-            FileInfo[i].FilePath = NULL;
+            FileInfo[i].FilePath = nullptr;
         }
     }
 
@@ -191,7 +191,7 @@ void DirList::SortList(BOOL (*SortFunc)(const DirEntry &a, const DirEntry &b)) {
 }
 
 uint64_t DirList::GetFilesize(int32_t index) const {
-    struct stat st;
+    struct stat st{};
     const char *path = GetFilepath(index);
 
     if (!path || stat(path, &st) != 0)
@@ -204,7 +204,7 @@ int32_t DirList::GetFileIndex(const char *filename) const {
     if (!filename)
         return -1;
 
-    for (uint32_t i = 0; i < FileInfo.size(); ++i) {
+    for (int32_t i = 0; i < FileInfo.size(); ++i) {
         if (strcasecmp(GetFilename(i), filename) == 0)
             return i;
     }

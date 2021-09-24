@@ -9,7 +9,7 @@
 
 int32_t FSUtils::LoadFileToMem(const char *filepath, uint8_t **inbuffer, uint32_t *size) {
     //! always initialze input
-    *inbuffer = NULL;
+    *inbuffer = nullptr;
     if (size)
         *size = 0;
 
@@ -20,8 +20,8 @@ int32_t FSUtils::LoadFileToMem(const char *filepath, uint8_t **inbuffer, uint32_
     uint32_t filesize = lseek(iFd, 0, SEEK_END);
     lseek(iFd, 0, SEEK_SET);
 
-    uint8_t *buffer = (uint8_t *) malloc(filesize);
-    if (buffer == NULL) {
+    auto *buffer = (uint8_t *) malloc(filesize);
+    if (buffer == nullptr) {
         close(iFd);
         return -2;
     }
@@ -44,7 +44,7 @@ int32_t FSUtils::LoadFileToMem(const char *filepath, uint8_t **inbuffer, uint32_
 
     if (done != filesize) {
         free(buffer);
-        buffer = NULL;
+        buffer = nullptr;
         return -3;
     }
 
@@ -62,7 +62,7 @@ int32_t FSUtils::CheckFile(const char *filepath) {
     if (!filepath)
         return 0;
 
-    struct stat filestat;
+    struct stat filestat{};
 
     char dirnoslash[strlen(filepath) + 2];
     snprintf(dirnoslash, sizeof(dirnoslash), "%s", filepath);
@@ -106,7 +106,7 @@ int32_t FSUtils::CreateSubfolder(const char *fullpath) {
         if (!ptr) {
             //!Device root directory (must be with '/')
             strcat(parentpath, "/");
-            struct stat filestat;
+            struct stat filestat{};
             if (stat(parentpath, &filestat) == 0)
                 return 1;
 

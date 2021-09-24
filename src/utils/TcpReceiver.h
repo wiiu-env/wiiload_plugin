@@ -17,20 +17,18 @@ public:
         NOT_A_VALID_PLUGIN = -5,
     };
 
-    TcpReceiver(int32_t port);
+    explicit TcpReceiver(int32_t port);
 
-    ~TcpReceiver();
+    ~TcpReceiver() override;
 
     //sigslot::signal2<GuiElement *, uint32_t> serverReceiveStart;
     //sigslot::signal3<GuiElement *, uint32_t, int32_t> serverReceiveFinished;
 
 private:
 
-    void executeThread();
+    void executeThread() override;
 
-    int32_t loadToMemory(int32_t clientSocket, uint32_t ipAddress);
-
-    bool saveFileToSDCard(const char *path, void *buffer, uint32_t size);
+    static int32_t loadToMemory(int32_t clientSocket, uint32_t ipAddress);
 
     bool exitRequested;
     int32_t serverPort;

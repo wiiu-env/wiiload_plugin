@@ -34,7 +34,7 @@ void _SYSLaunchTitleWithStdArgsInNoSplash(uint64_t, uint32_t);
 }
 
 TcpReceiver::TcpReceiver(int32_t port)
-        : CThread(CThread::eAttributeAffCore1, 16,0x20000), exitRequested(false), serverPort(port), serverSocket(-1) {
+        : CThread(CThread::eAttributeAffCore1, 16, 0x20000), exitRequested(false), serverPort(port), serverSocket(-1) {
 
     resumeThread();
 }
@@ -58,7 +58,7 @@ void TcpReceiver::executeThread() {
     uint32_t enable = 1;
     setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(enable));
 
-    struct sockaddr_in bindAddress;
+    struct sockaddr_in bindAddress{};
     memset(&bindAddress, 0, sizeof(bindAddress));
     bindAddress.sin_family = AF_INET;
     bindAddress.sin_port = serverPort;
@@ -76,7 +76,7 @@ void TcpReceiver::executeThread() {
         return;
     }
 
-    struct sockaddr_in clientAddr;
+    struct sockaddr_in clientAddr{};
     memset(&clientAddr, 0, sizeof(clientAddr));
     int32_t addrlen = sizeof(struct sockaddr);
 
@@ -91,9 +91,9 @@ void TcpReceiver::executeThread() {
             close(clientSocket);
 
             if (result > 0)
-            if (result >= 0){
-                break;
-            }
+                if (result >= 0) {
+                    break;
+                }
         } else {
             DEBUG_FUNCTION_LINE("Server socket accept failed %i %d", clientSocket, errno);
             OSSleepTicks(OSMicrosecondsToTicks(100000));
@@ -105,6 +105,7 @@ void TcpReceiver::executeThread() {
 
 
 extern bool gDoRelaunch;
+
 int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
     DEBUG_FUNCTION_LINE("Loading file from ip %08X", ipAddress);
 
@@ -120,13 +121,13 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
         recvwait(clientSocket, (unsigned char *) &fileSizeUnc, sizeof(fileSizeUnc)); // Compressed protocol, read another 4 bytes
     }
 
-    struct in_addr in;
+    struct in_addr in{};
     uint32_t bytesRead = 0;
     in.s_addr = ipAddress;
 
     DEBUG_FUNCTION_LINE("transfer start");
 
-    unsigned char *loadAddress = (unsigned char *) memalign(0x40, fileSize);
+    auto *loadAddress = (unsigned char *) memalign(0x40, fileSize);
     if (!loadAddress) {
         OSSleepTicks(OSSecondsToTicks(1));
         return NOT_ENOUGH_MEMORY;
@@ -160,7 +161,7 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
 
     // Do we need to unzip this thing?
     if (haxx[4] > 0 || haxx[5] > 4) {
-        unsigned char *inflatedData = NULL;
+        unsigned char *inflatedData = nullptr;
 
         // We need to unzip...
         if (loadAddress[0] == 'P' && loadAddress[1] == 'K' && loadAddress[2] == 0x03 && loadAddress[3] == 0x04) {
@@ -233,7 +234,7 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
             FSUtils::CreateSubfolder(RPX_TEMP_PATH);
             res = FSUtils::saveBufferToFile(WUHB_TEMP_FILE, inflatedData, fileSize);
             file_path = WUHB_TEMP_FILE_EX;
-            if(!res){
+            if (!res) {
                 // temp.wuhb might be mounted, let's try temp2.wuhb
                 res = FSUtils::saveBufferToFile(WUHB_TEMP_FILE_2, inflatedData, fileSize);
                 file_path = WUHB_TEMP_FILE_2_EX;
@@ -253,7 +254,7 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
                 std::vector<PluginContainer> finalList;
 
                 finalList.push_back(newContainer.value());
-                for (auto &plugin : oldPlugins) {
+                for (auto &plugin: oldPlugins) {
                     if (plugin.metaInformation.getName() == newContainer->metaInformation.getName() &&
                         plugin.metaInformation.getAuthor() == newContainer->metaInformation.getAuthor()
                             ) {
@@ -265,7 +266,7 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
                     }
                 }
 
-                for (auto &plugin : finalList) {
+                for (auto &plugin: finalList) {
                     DEBUG_FUNCTION_LINE("name: %s", plugin.getMetaInformation().getName().c_str());
                     DEBUG_FUNCTION_LINE("author: %s", plugin.getMetaInformation().getAuthor().c_str());
                     DEBUG_FUNCTION_LINE("handle: %08X", plugin.getPluginData().getHandle());

@@ -14,8 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
-#ifndef CTHREAD_H_
-#define CTHREAD_H_
+#pragma once
 
 #include <malloc.h>
 #include <unistd.h>
@@ -28,7 +27,7 @@ public:
     typedef void (*Callback)(CThread *thread, void *arg);
 
     //! constructor
-    CThread(int32_t iAttr, int32_t iPriority = 16, int32_t iStackSize = 0x8000, CThread::Callback callback = NULL, void *callbackArg = NULL)
+    explicit CThread(int32_t iAttr, int32_t iPriority = 16, int32_t iStackSize = 0x8000, CThread::Callback callback = NULL, void *callbackArg = NULL)
             : pThread(NULL), pThreadStack(NULL), pCallback(callback), pCallbackArg(callbackArg) {
         //! save attribute assignment
         iAttributes = iAttr;
@@ -52,24 +51,24 @@ public:
     }
 
     //! Get thread ID
-    virtual void *getThread() const {
+    [[nodiscard]] virtual void *getThread() const {
         return pThread;
     }
 
     //! Thread entry function
-    virtual void executeThread(void) {
+    virtual void executeThread() {
         if (pCallback)
             pCallback(this, pCallbackArg);
     }
 
     //! Suspend thread
-    virtual void suspendThread(void) {
+    virtual void suspendThread() {
         if (isThreadSuspended()) return;
         if (pThread) OSSuspendThread(pThread);
     }
 
     //! Resume thread
-    virtual void resumeThread(void) {
+    virtual void resumeThread() {
         if (!isThreadSuspended()) return;
         if (pThread) OSResumeThread(pThread);
     }
@@ -80,30 +79,30 @@ public:
     }
 
     //! Check if thread is suspended
-    virtual BOOL isThreadSuspended(void) const {
+    [[nodiscard]] virtual BOOL isThreadSuspended() const {
         if (pThread) return OSIsThreadSuspended(pThread);
         return false;
     }
 
     //! Check if thread is terminated
-    virtual BOOL isThreadTerminated(void) const {
+    [[nodiscard]] virtual BOOL isThreadTerminated() const {
         if (pThread) return OSIsThreadTerminated(pThread);
         return false;
     }
 
     //! Check if thread is running
-    virtual BOOL isThreadRunning(void) const {
+    [[nodiscard]] virtual BOOL isThreadRunning() const {
         return !isThreadSuspended() && !isThreadRunning();
     }
 
     //! Shutdown thread
-    virtual void shutdownThread(void) {
+    virtual void shutdownThread() {
         //! wait for thread to finish
         if (pThread && !(iAttributes & eAttributeDetach)) {
             if (isThreadSuspended())
                 resumeThread();
 
-            OSJoinThread(pThread, NULL);
+            OSJoinThread(pThread, nullptr);
         }
         //! free the thread stack buffer
         if (pThreadStack)
@@ -111,18 +110,18 @@ public:
         if (pThread)
             free(pThread);
 
-        pThread = NULL;
-        pThreadStack = NULL;
+        pThread = nullptr;
+        pThreadStack = nullptr;
     }
 
     //! Thread attributes
     enum eCThreadAttributes {
-        eAttributeNone              = 0x07,
-        eAttributeAffCore0          = 0x01,
-        eAttributeAffCore1          = 0x02,
-        eAttributeAffCore2          = 0x04,
-        eAttributeDetach            = 0x08,
-        eAttributePinnedAff         = 0x10
+        eAttributeNone = 0x07,
+        eAttributeAffCore0 = 0x01,
+        eAttributeAffCore1 = 0x02,
+        eAttributeAffCore2 = 0x04,
+        eAttributeDetach = 0x08,
+        eAttributePinnedAff = 0x10
     };
 private:
     static int threadCallback(int argc, const char **argv) {
@@ -137,5 +136,3 @@ private:
     Callback pCallback;
     void *pCallbackArg;
 };
-
-#endif

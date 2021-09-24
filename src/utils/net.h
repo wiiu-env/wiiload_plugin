@@ -1,5 +1,4 @@
-#ifndef _UTILS_NET_H_
-#define _UTILS_NET_H_
+#pragma once
 
 #include <stdint.h>
 
@@ -32,6 +31,4 @@ int32_t sendbyte(int32_t sock, unsigned char byte);
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif

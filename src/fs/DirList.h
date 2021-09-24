@@ -24,8 +24,7 @@
  * DirList Class
  * for WiiXplorer 2010
  ***************************************************************************/
-#ifndef ___DIRLIST_H_
-#define ___DIRLIST_H_
+#pragma once
 
 #include <vector>
 #include <string>
@@ -39,43 +38,43 @@ typedef struct {
 class DirList {
 public:
     //!Constructor
-    DirList(void);
+    DirList();
 
     //!\param path Path from where to load the filelist of all files
     //!\param filter A fileext that needs to be filtered
     //!\param flags search/filter flags from the enum
-    DirList(const std::string &path, const char *filter = NULL, uint32_t flags = Files | Dirs, uint32_t maxDepth = 0xffffffff);
+    explicit DirList(const std::string &path, const char *filter = nullptr, uint32_t flags = Files | Dirs, uint32_t maxDepth = 0xffffffff);
 
     //!Destructor
     virtual ~DirList();
 
     //! Load all the files from a directory
-    BOOL LoadPath(const std::string &path, const char *filter = NULL, uint32_t flags = Files | Dirs, uint32_t maxDepth = 0xffffffff);
+    BOOL LoadPath(const std::string &path, const char *filter = nullptr, uint32_t flags = Files | Dirs, uint32_t maxDepth = 0xffffffff);
 
     //! Get a filename of the list
     //!\param list index
-    const char *GetFilename(int32_t index) const;
+    [[nodiscard]] const char *GetFilename(int32_t index) const;
 
     //! Get the a filepath of the list
     //!\param list index
-    const char *GetFilepath(int32_t index) const {
+    [[nodiscard]] const char *GetFilepath(int32_t index) const {
         if (!valid(index)) return "";
         else return FileInfo[index].FilePath;
     }
 
     //! Get the a filesize of the list
     //!\param list index
-    uint64_t GetFilesize(int32_t index) const;
+    [[nodiscard]] uint64_t GetFilesize(int32_t index) const;
 
     //! Is index a dir or a file
     //!\param list index
-    BOOL IsDir(int32_t index) const {
+    [[nodiscard]] BOOL IsDir(int32_t index) const {
         if (!valid(index)) return false;
         return FileInfo[index].isDir;
     };
 
     //! Get the filecount of the whole list
-    int32_t GetFilecount() const {
+    [[nodiscard]] int32_t GetFilecount() const {
         return FileInfo.size();
     };
 
@@ -105,14 +104,12 @@ protected:
     void ClearList();
 
     //! Check if valid pos is requested
-    inline BOOL valid(uint32_t pos) const {
+    [[nodiscard]] inline BOOL valid(uint32_t pos) const {
         return (pos < FileInfo.size());
     };
 
-    uint32_t Flags;
-    uint32_t Depth;
-    const char *Filter;
+    uint32_t Flags{};
+    uint32_t Depth{};
+    const char *Filter{};
     std::vector<DirEntry> FileInfo;
 };
-
-#endif
