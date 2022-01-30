@@ -73,7 +73,6 @@ void TcpReceiver::executeThread() {
 
     struct sockaddr_in clientAddr{};
     memset(&clientAddr, 0, sizeof(clientAddr));
-    int32_t addrlen = sizeof(struct sockaddr);
 
     while (!exitRequested) {
         len = 16;
@@ -98,9 +97,6 @@ void TcpReceiver::executeThread() {
     close(serverSocket);
 }
 
-
-extern bool gDoRelaunch;
-
 int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
     DEBUG_FUNCTION_LINE("Loading file from ip %08X", ipAddress);
 
@@ -116,10 +112,7 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
         recvwait(clientSocket, (unsigned char *) &fileSizeUnc, sizeof(fileSizeUnc)); // Compressed protocol, read another 4 bytes
     }
 
-    struct in_addr in{};
     uint32_t bytesRead = 0;
-    in.s_addr = ipAddress;
-
     DEBUG_FUNCTION_LINE("transfer start");
 
     auto *loadAddress = (unsigned char *) memalign(0x40, fileSize);
@@ -130,7 +123,6 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
 
     // Copy rpl in memory
     while (bytesRead < fileSize) {
-
         uint32_t blockSize = 0x1000;
         if (blockSize > (fileSize - bytesRead))
             blockSize = fileSize - bytesRead;
@@ -270,9 +262,6 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
 
                 if (PluginUtils::LoadAndLinkOnRestart(finalList) != 0) {
                     DEBUG_FUNCTION_LINE("Failed to load & link");
-                } else {
-                    //gDoRelaunch = true;
-                    //DCFlushRange(&gDoRelaunch, sizeof(gDoRelaunch));
                 }
                 PluginUtils::destroyPluginContainer(finalList);
 

@@ -1,5 +1,4 @@
-#ifndef TCP_RECEIVER_H_
-#define TCP_RECEIVER_H_
+#pragma once
 
 #include <vector>
 #include <string>
@@ -19,13 +18,9 @@ public:
 
     explicit TcpReceiver(int32_t port);
 
-    ~TcpReceiver() override;
-
-    //sigslot::signal2<GuiElement *, uint32_t> serverReceiveStart;
-    //sigslot::signal3<GuiElement *, uint32_t, int32_t> serverReceiveFinished;
+    virtual ~TcpReceiver();
 
 private:
-
     void executeThread() override;
 
     static int32_t loadToMemory(int32_t clientSocket, uint32_t ipAddress);
@@ -34,6 +29,3 @@ private:
     int32_t serverPort;
     int32_t serverSocket;
 };
-
-
-#endif
