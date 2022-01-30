@@ -36,8 +36,10 @@ public:
         //! allocate the stack
         pThreadStack = (uint8_t *) memalign(0x20, iStackSize);
         //! create the thread
-        if (pThread && pThreadStack)
+        if (pThread && pThreadStack) {
             OSCreateThread(pThread, &CThread::threadCallback, 1, (char *) this, pThreadStack + iStackSize, iStackSize, iPriority, iAttributes);
+            OSSetThreadName(pThread, "Wiiload Thread");
+        }
     }
 
     //! destructor
