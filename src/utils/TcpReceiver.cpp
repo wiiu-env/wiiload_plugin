@@ -1,23 +1,23 @@
 #include <algorithm>
 #include <string>
 #include <vector>
-#include <string.h>
+#include <cstring>
 #include <zlib.h>
 #include <sysapp/launch.h>
 
 #include <coreinit/dynload.h>
 #include <coreinit/title.h>
-
 #include <coreinit/messagequeue.h>
 #include <coreinit/ios.h>
+#include <coreinit/debug.h>
+#include <coreinit/cache.h>
+#include <sysapp/title.h>
 
 #include "TcpReceiver.h"
 #include "fs/FSUtils.h"
 #include "utils/net.h"
 #include "utils/utils.h"
 #include <wups_backend/PluginUtils.h>
-#include <coreinit/debug.h>
-#include <coreinit/cache.h>
 #include <rpxloader.h>
 
 #define RPX_TEMP_PATH "fs:/vol/external01/wiiu/apps/"
@@ -27,11 +27,6 @@
 #define RPX_TEMP_FILE_EX "wiiu/apps/temp.rpx"
 #define WUHB_TEMP_FILE_EX "wiiu/apps/temp.wuhb"
 #define WUHB_TEMP_FILE_2_EX "wiiu/apps/temp2.wuhb"
-
-extern "C" {
-uint64_t _SYSGetSystemApplicationTitleId(int32_t);
-void _SYSLaunchTitleWithStdArgsInNoSplash(uint64_t, uint32_t);
-}
 
 TcpReceiver::TcpReceiver(int32_t port)
         : CThread(CThread::eAttributeAffCore1, 16, 0x20000), exitRequested(false), serverPort(port), serverSocket(-1) {
@@ -284,7 +279,7 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
                 free(loadAddress);
                 free(inflatedData);
 
-                _SYSLaunchTitleWithStdArgsInNoSplash(OSGetTitleID(), 0);
+                _SYSLaunchTitleWithStdArgsInNoSplash(OSGetTitleID(), nullptr);
                 return fileSize;
             } else {
                 DEBUG_FUNCTION_LINE("Failed to parse plugin");
@@ -319,8 +314,8 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
         DEBUG_FUNCTION_LINE("Starting a homebrew title!");
         RL_LoadFromSDOnNextLaunch(file_path);
 
-        uint64_t titleID = _SYSGetSystemApplicationTitleId(8);
-        _SYSLaunchTitleWithStdArgsInNoSplash(titleID, 0);
+        uint64_t titleID = _SYSGetSystemApplicationTitleId(SYSTEM_APP_ID_HEALTH_AND_SAFETY);
+        _SYSLaunchTitleWithStdArgsInNoSplash(titleID, nullptr);
         return fileSize;
     }
 
