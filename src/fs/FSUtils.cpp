@@ -1,10 +1,10 @@
-#include <malloc.h>
-#include <string.h>
-#include <stdio.h>
-#include <unistd.h>
 #include <fcntl.h>
-#include <fs/FSUtils.h>
 #include <fs/CFile.hpp>
+#include <fs/FSUtils.h>
+#include <malloc.h>
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
 #include <utils/logger.h>
 
 int32_t FSUtils::LoadFileToMem(const char *filepath, uint8_t **inbuffer, uint32_t *size) {
@@ -27,8 +27,8 @@ int32_t FSUtils::LoadFileToMem(const char *filepath, uint8_t **inbuffer, uint32_
     }
 
     uint32_t blocksize = 0x4000;
-    uint32_t done = 0;
-    int32_t readBytes = 0;
+    uint32_t done      = 0;
+    int32_t readBytes  = 0;
 
     while (done < filesize) {
         if (done + blocksize > filesize) {
@@ -62,7 +62,7 @@ int32_t FSUtils::CheckFile(const char *filepath) {
     if (!filepath)
         return 0;
 
-    struct stat filestat{};
+    struct stat filestat {};
 
     char dirnoslash[strlen(filepath) + 2];
     snprintf(dirnoslash, sizeof(dirnoslash), "%s", filepath);
@@ -106,7 +106,7 @@ int32_t FSUtils::CreateSubfolder(const char *fullpath) {
         if (!ptr) {
             //!Device root directory (must be with '/')
             strcat(parentpath, "/");
-            struct stat filestat{};
+            struct stat filestat {};
             if (stat(parentpath, &filestat) == 0)
                 return 1;
 
@@ -139,4 +139,3 @@ BOOL FSUtils::saveBufferToFile(const char *path, void *buffer, uint32_t size) {
     file.close();
     return true;
 }
-

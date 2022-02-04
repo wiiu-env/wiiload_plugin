@@ -1,18 +1,18 @@
 #pragma once
 
-#include <vector>
 #include <string>
+#include <vector>
 
 #include "CThread.h"
 
 class TcpReceiver : public CThread {
 public:
     enum eLoadResults {
-        SUCCESS = 0,
-        INVALID_INPUT = -1,
-        FILE_OPEN_FAILURE = -2,
-        FILE_READ_ERROR = -3,
-        NOT_ENOUGH_MEMORY = -4,
+        SUCCESS            = 0,
+        INVALID_INPUT      = -1,
+        FILE_OPEN_FAILURE  = -2,
+        FILE_READ_ERROR    = -3,
+        NOT_ENOUGH_MEMORY  = -4,
         NOT_A_VALID_PLUGIN = -5,
     };
 

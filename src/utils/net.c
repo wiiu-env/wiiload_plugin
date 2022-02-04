@@ -50,7 +50,7 @@ int32_t checkbyte(int32_t sock) {
     unsigned char buffer[1];
     int32_t ret;
 
-    ret = recv(sock, buffer, 1, MSG_DONTWAIT);
+    ret         = recv(sock, buffer, 1, MSG_DONTWAIT);
     socket_lock = 0;
     if (ret < 0)
         return ret;
@@ -68,7 +68,7 @@ int32_t sendwait(int32_t sock, const void *buffer, int32_t len) {
     while (len > 0) {
         // For some reason the send blocks/crashes if the buffer is too big..
         int cur_length = len <= 0x30 ? len : 0x30;
-        ret = send(sock, buffer, cur_length, 0);
+        ret            = send(sock, buffer, cur_length, 0);
         if (ret < 0) {
             socket_lock = 0;
             return ret;
