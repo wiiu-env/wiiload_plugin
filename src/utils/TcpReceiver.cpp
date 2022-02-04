@@ -1,35 +1,35 @@
 #include <algorithm>
-#include <string>
-#include <vector>
 #include <cstring>
-#include <zlib.h>
+#include <string>
 #include <sysapp/launch.h>
+#include <vector>
+#include <zlib.h>
 
-#include <coreinit/dynload.h>
-#include <coreinit/title.h>
-#include <coreinit/messagequeue.h>
-#include <coreinit/ios.h>
-#include <coreinit/debug.h>
 #include <coreinit/cache.h>
+#include <coreinit/debug.h>
+#include <coreinit/dynload.h>
+#include <coreinit/ios.h>
+#include <coreinit/messagequeue.h>
+#include <coreinit/title.h>
 #include <sysapp/title.h>
 
 #include "TcpReceiver.h"
 #include "fs/FSUtils.h"
 #include "utils/net.h"
 #include "utils/utils.h"
-#include <wups_backend/PluginUtils.h>
 #include <rpxloader.h>
+#include <wups_backend/PluginUtils.h>
 
-#define RPX_TEMP_PATH "fs:/vol/external01/wiiu/apps/"
-#define RPX_TEMP_FILE "fs:/vol/external01/wiiu/apps/temp.rpx"
-#define WUHB_TEMP_FILE "fs:/vol/external01/wiiu/apps/temp.wuhb"
-#define WUHB_TEMP_FILE_2 "fs:/vol/external01/wiiu/apps/temp2.wuhb"
-#define RPX_TEMP_FILE_EX "wiiu/apps/temp.rpx"
-#define WUHB_TEMP_FILE_EX "wiiu/apps/temp.wuhb"
+#define RPX_TEMP_PATH       "fs:/vol/external01/wiiu/apps/"
+#define RPX_TEMP_FILE       "fs:/vol/external01/wiiu/apps/temp.rpx"
+#define WUHB_TEMP_FILE      "fs:/vol/external01/wiiu/apps/temp.wuhb"
+#define WUHB_TEMP_FILE_2    "fs:/vol/external01/wiiu/apps/temp2.wuhb"
+#define RPX_TEMP_FILE_EX    "wiiu/apps/temp.rpx"
+#define WUHB_TEMP_FILE_EX   "wiiu/apps/temp.wuhb"
 #define WUHB_TEMP_FILE_2_EX "wiiu/apps/temp2.wuhb"
 
 TcpReceiver::TcpReceiver(int32_t port)
-        : CThread(CThread::eAttributeAffCore1, 16, 0x20000), exitRequested(false), serverPort(port), serverSocket(-1) {
+    : CThread(CThread::eAttributeAffCore1, 16, 0x20000), exitRequested(false), serverPort(port), serverSocket(-1) {
 
     resumeThread();
 }
@@ -42,7 +42,7 @@ TcpReceiver::~TcpReceiver() {
     }
 }
 
-#define wiiu_geterrno()  (socketlasterr())
+#define wiiu_geterrno() (socketlasterr())
 
 void TcpReceiver::executeThread() {
     serverSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
@@ -53,10 +53,10 @@ void TcpReceiver::executeThread() {
     uint32_t enable = 1;
     setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(enable));
 
-    struct sockaddr_in bindAddress{};
+    struct sockaddr_in bindAddress {};
     memset(&bindAddress, 0, sizeof(bindAddress));
-    bindAddress.sin_family = AF_INET;
-    bindAddress.sin_port = serverPort;
+    bindAddress.sin_family      = AF_INET;
+    bindAddress.sin_port        = serverPort;
     bindAddress.sin_addr.s_addr = INADDR_ANY;
 
     socklen_t len;
@@ -71,11 +71,11 @@ void TcpReceiver::executeThread() {
         return;
     }
 
-    struct sockaddr_in clientAddr{};
+    struct sockaddr_in clientAddr {};
     memset(&clientAddr, 0, sizeof(clientAddr));
 
     while (!exitRequested) {
-        len = 16;
+        len                  = 16;
         int32_t clientSocket = accept(serverSocket, (struct sockaddr *) &clientAddr, &len);
         if (clientSocket >= 0) {
             uint32_t ipAddress = clientAddr.sin_addr.s_addr;
@@ -100,7 +100,7 @@ void TcpReceiver::executeThread() {
 int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
     DEBUG_FUNCTION_LINE("Loading file from ip %08X", ipAddress);
 
-    uint32_t fileSize = 0;
+    uint32_t fileSize    = 0;
     uint32_t fileSizeUnc = 0;
     unsigned char haxx[8];
     memset(haxx, 0, sizeof(haxx));
@@ -142,8 +142,8 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
         return FILE_READ_ERROR;
     }
 
-    bool res = false;
-    bool loadedRPX = false;
+    bool res              = false;
+    bool loadedRPX        = false;
     const char *file_path = nullptr;
 
     // Do we need to unzip this thing?
@@ -168,7 +168,7 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
             memset(&s, 0, sizeof(s));
 
             s.zalloc = Z_NULL;
-            s.zfree = Z_NULL;
+            s.zfree  = Z_NULL;
             s.opaque = Z_NULL;
 
             ret = inflateInit(&s);
@@ -180,10 +180,10 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
             }
 
             s.avail_in = fileSize;
-            s.next_in = (Bytef *) (&loadAddress[0]);
+            s.next_in  = (Bytef *) (&loadAddress[0]);
 
             s.avail_out = fileSizeUnc;
-            s.next_out = (Bytef *) &inflatedData[0];
+            s.next_out  = (Bytef *) &inflatedData[0];
 
             ret = inflate(&s, Z_FINISH);
             if (ret != Z_OK && ret != Z_STREAM_END) {
@@ -204,7 +204,7 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
                 return NOT_ENOUGH_MEMORY;
             }
 
-            uLongf f = fileSizeUnc;
+            uLongf f       = fileSizeUnc;
             int32_t result = uncompress((Bytef *) &inflatedData[0], &f, (Bytef *) loadAddress, fileSize);
             if (result != Z_OK) {
                 DEBUG_FUNCTION_LINE("uncompress failed %i", result);
@@ -213,17 +213,17 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
             }
 
             fileSizeUnc = f;
-            fileSize = fileSizeUnc;
+            fileSize    = fileSizeUnc;
         }
 
         if (memcmp(inflatedData, "WUHB", 4) == 0) {
             DEBUG_FUNCTION_LINE("Try to load a .wuhb");
             FSUtils::CreateSubfolder(RPX_TEMP_PATH);
-            res = FSUtils::saveBufferToFile(WUHB_TEMP_FILE, inflatedData, fileSize);
+            res       = FSUtils::saveBufferToFile(WUHB_TEMP_FILE, inflatedData, fileSize);
             file_path = WUHB_TEMP_FILE_EX;
             if (!res) {
                 // temp.wuhb might be mounted, let's try temp2.wuhb
-                res = FSUtils::saveBufferToFile(WUHB_TEMP_FILE_2, inflatedData, fileSize);
+                res       = FSUtils::saveBufferToFile(WUHB_TEMP_FILE_2, inflatedData, fileSize);
                 file_path = WUHB_TEMP_FILE_2_EX;
             }
 
@@ -231,7 +231,7 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
         } else if (inflatedData[0x7] == 0xCA && inflatedData[0x8] == 0xFE && inflatedData[0x9] != 0x50 && inflatedData[0xA] != 0x4C) {
             DEBUG_FUNCTION_LINE("Try to load a .rpx");
             FSUtils::CreateSubfolder(RPX_TEMP_PATH);
-            res = FSUtils::saveBufferToFile(RPX_TEMP_FILE, inflatedData, fileSize);
+            res       = FSUtils::saveBufferToFile(RPX_TEMP_FILE, inflatedData, fileSize);
             file_path = RPX_TEMP_FILE_EX;
             loadedRPX = true;
         } else if (inflatedData[0x7] == 0xCA && inflatedData[0x8] == 0xFE && inflatedData[0x9] == 0x50 && inflatedData[0xA] == 0x4C) {
@@ -241,10 +241,9 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
                 std::vector<PluginContainer> finalList;
 
                 finalList.push_back(newContainer.value());
-                for (auto &plugin: oldPlugins) {
+                for (auto &plugin : oldPlugins) {
                     if (plugin.metaInformation.getName() == newContainer->metaInformation.getName() &&
-                        plugin.metaInformation.getAuthor() == newContainer->metaInformation.getAuthor()
-                            ) {
+                        plugin.metaInformation.getAuthor() == newContainer->metaInformation.getAuthor()) {
                         DEBUG_FUNCTION_LINE("Skipping duplicate");
                         PluginUtils::destroyPluginContainer(plugin);
                         continue;
@@ -253,7 +252,7 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
                     }
                 }
 
-                for (auto &plugin: finalList) {
+                for (auto &plugin : finalList) {
                     DEBUG_FUNCTION_LINE("name: %s", plugin.getMetaInformation().getName().c_str());
                     DEBUG_FUNCTION_LINE("author: %s", plugin.getMetaInformation().getAuthor().c_str());
                     DEBUG_FUNCTION_LINE("handle: %08X", plugin.getPluginData().getHandle());
@@ -279,13 +278,13 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
         if (memcmp(loadAddress, "WUHB", 4) == 0) {
             DEBUG_FUNCTION_LINE("Try to load a .wuhb");
             FSUtils::CreateSubfolder(RPX_TEMP_PATH);
-            res = FSUtils::saveBufferToFile(WUHB_TEMP_FILE, loadAddress, fileSize);
+            res       = FSUtils::saveBufferToFile(WUHB_TEMP_FILE, loadAddress, fileSize);
             file_path = WUHB_TEMP_FILE_EX;
             loadedRPX = true;
         } else if (loadAddress[0x7] == 0xCA && loadAddress[0x8] == 0xFE) {
             DEBUG_FUNCTION_LINE("Try to load a rpx");
             FSUtils::CreateSubfolder(RPX_TEMP_PATH);
-            res = FSUtils::saveBufferToFile(RPX_TEMP_FILE, loadAddress, fileSize);
+            res       = FSUtils::saveBufferToFile(RPX_TEMP_FILE, loadAddress, fileSize);
             file_path = RPX_TEMP_FILE_EX;
             loadedRPX = true;
         } else if (loadAddress[0x7] == 0xCA && loadAddress[0x8] == 0xFE && loadAddress[0x9] == 0x50) {

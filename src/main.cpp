@@ -1,6 +1,6 @@
-#include <wups.h>
-#include "utils/logger.h"
 #include "utils/TcpReceiver.h"
+#include "utils/logger.h"
+#include <wups.h>
 
 WUPS_PLUGIN_NAME("Wiiload");
 WUPS_PLUGIN_DESCRIPTION("Wiiload Server");

@@ -1,6 +1,6 @@
+#include "utils/logger.h"
 #include <string.h>
 #include <whb/log.h>
-#include "utils/logger.h"
 
 // https://gist.github.com/ccbrown/9722406
 void dumpHex(const void *data, size_t size) {
