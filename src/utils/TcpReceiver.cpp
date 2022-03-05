@@ -39,6 +39,8 @@ TcpReceiver::~TcpReceiver() {
 
     if (serverSocket >= 0) {
         shutdown(serverSocket, SHUT_RDWR);
+        close(serverSocket);
+        serverSocket = -1;
     }
 }
 
@@ -62,12 +64,16 @@ void TcpReceiver::executeThread() {
     socklen_t len;
     int32_t ret;
     if ((ret = bind(serverSocket, (struct sockaddr *) &bindAddress, 16)) < 0) {
+        shutdown(serverSocket, SHUT_RDWR);
         close(serverSocket);
+        serverSocket = -1;
         return;
     }
 
     if ((ret = listen(serverSocket, 1)) < 0) {
+        shutdown(serverSocket, SHUT_RDWR);
         close(serverSocket);
+        serverSocket = -1;
         return;
     }
 
@@ -94,7 +100,9 @@ void TcpReceiver::executeThread() {
         }
     }
 
+    shutdown(serverSocket, SHUT_RDWR);
     close(serverSocket);
+    serverSocket = -1;
 }
 
 int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
