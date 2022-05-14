@@ -27,8 +27,7 @@ void stopThread() {
 }
 
 ON_APPLICATION_REQUESTS_EXIT() {
-    DEBUG_FUNCTION_LINE("Kill wiiload thread");
-
+    DEBUG_FUNCTION_LINE("Stop wiiload thread");
     stopThread();
 
     deinitLogging();

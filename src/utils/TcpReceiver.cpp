@@ -1,24 +1,19 @@
-#include <algorithm>
-#include <cstring>
-#include <string>
-#include <sysapp/launch.h>
-#include <vector>
-#include <zlib.h>
-
-#include <coreinit/cache.h>
-#include <coreinit/debug.h>
-#include <coreinit/dynload.h>
-#include <coreinit/ios.h>
-#include <coreinit/messagequeue.h>
-#include <coreinit/title.h>
-#include <sysapp/title.h>
-
 #include "TcpReceiver.h"
 #include "fs/FSUtils.h"
 #include "utils/net.h"
 #include "utils/utils.h"
+#include <algorithm>
+#include <coreinit/debug.h>
+#include <coreinit/dynload.h>
+#include <coreinit/title.h>
+#include <cstring>
 #include <rpxloader.h>
+#include <string>
+#include <sysapp/launch.h>
+#include <sysapp/title.h>
+#include <vector>
 #include <wups_backend/PluginUtils.h>
+#include <zlib.h>
 
 #define RPX_TEMP_PATH       "fs:/vol/external01/wiiu/apps/"
 #define RPX_TEMP_FILE       "fs:/vol/external01/wiiu/apps/temp.rpx"
@@ -43,8 +38,6 @@ TcpReceiver::~TcpReceiver() {
         serverSocket = -1;
     }
 }
-
-#define wiiu_geterrno() (socketlasterr())
 
 void TcpReceiver::executeThread() {
     serverSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
@@ -95,7 +88,7 @@ void TcpReceiver::executeThread() {
                     break;
                 }
         } else {
-            DEBUG_FUNCTION_LINE("Server socket accept failed %i %d", clientSocket, errno);
+            DEBUG_FUNCTION_LINE_ERR("Server socket accept failed socket: %i errno: %d", clientSocket, errno);
             OSSleepTicks(OSMicrosecondsToTicks(100000));
         }
     }
@@ -121,7 +114,6 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
     }
 
     uint32_t bytesRead = 0;
-    DEBUG_FUNCTION_LINE("transfer start");
 
     auto *loadAddress = (unsigned char *) memalign(0x40, fileSize);
     if (!loadAddress) {
@@ -137,7 +129,7 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
 
         int32_t ret = recv(clientSocket, loadAddress + bytesRead, blockSize, 0);
         if (ret <= 0) {
-            DEBUG_FUNCTION_LINE("Failure on reading file");
+            DEBUG_FUNCTION_LINE_ERR("Failed to receive file");
             break;
         }
 
@@ -146,7 +138,7 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
 
     if (bytesRead != fileSize) {
         free(loadAddress);
-        DEBUG_FUNCTION_LINE("File loading not finished, %i of %i bytes received", bytesRead, fileSize);
+        DEBUG_FUNCTION_LINE_ERR("File loading not finished, %i of %i bytes received", bytesRead, fileSize);
         return FILE_READ_ERROR;
     }
 
@@ -166,6 +158,7 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
             // Section is compressed, inflate
             inflatedData = (unsigned char *) malloc(fileSizeUnc);
             if (!inflatedData) {
+                DEBUG_FUNCTION_LINE_ERR("Failed to malloc data");
                 free(loadAddress);
 
                 return NOT_ENOUGH_MEMORY;
@@ -181,6 +174,7 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
 
             ret = inflateInit(&s);
             if (ret != Z_OK) {
+                DEBUG_FUNCTION_LINE_ERR("inflateInit failed %i", ret);
                 free(loadAddress);
                 free(inflatedData);
 
@@ -195,6 +189,7 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
 
             ret = inflate(&s, Z_FINISH);
             if (ret != Z_OK && ret != Z_STREAM_END) {
+                DEBUG_FUNCTION_LINE_ERR("inflate failed %i", ret);
                 free(loadAddress);
                 free(inflatedData);
 
@@ -207,6 +202,7 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
             // Section is compressed, inflate
             inflatedData = (unsigned char *) malloc(fileSizeUnc);
             if (!inflatedData) {
+                DEBUG_FUNCTION_LINE_ERR("malloc failed");
                 free(loadAddress);
 
                 return NOT_ENOUGH_MEMORY;
@@ -215,8 +211,7 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
             uLongf f       = fileSizeUnc;
             int32_t result = uncompress((Bytef *) &inflatedData[0], &f, (Bytef *) loadAddress, fileSize);
             if (result != Z_OK) {
-                DEBUG_FUNCTION_LINE("uncompress failed %i", result);
-
+                DEBUG_FUNCTION_LINE_ERR("uncompress failed %i", result);
                 return FILE_READ_ERROR;
             }
 
@@ -260,12 +255,14 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
                     }
                 }
 
+#ifdef VERBOSE_DEBUG
                 for (auto &plugin : finalList) {
-                    DEBUG_FUNCTION_LINE("name: %s", plugin.getMetaInformation().getName().c_str());
-                    DEBUG_FUNCTION_LINE("author: %s", plugin.getMetaInformation().getAuthor().c_str());
-                    DEBUG_FUNCTION_LINE("handle: %08X", plugin.getPluginData().getHandle());
-                    DEBUG_FUNCTION_LINE("====");
+                    DEBUG_FUNCTION_LINE_VERBOSE("name: %s", plugin.getMetaInformation().getName().c_str());
+                    DEBUG_FUNCTION_LINE_VERBOSE("author: %s", plugin.getMetaInformation().getAuthor().c_str());
+                    DEBUG_FUNCTION_LINE_VERBOSE("handle: %08X", plugin.getPluginData().getHandle());
+                    DEBUG_FUNCTION_LINE_VERBOSE("====");
                 }
+#endif
 
                 if (PluginUtils::LoadAndLinkOnRestart(finalList) != 0) {
                     DEBUG_FUNCTION_LINE("Failed to load & link");
@@ -278,7 +275,7 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
                 _SYSLaunchTitleWithStdArgsInNoSplash(OSGetTitleID(), nullptr);
                 return fileSize;
             } else {
-                DEBUG_FUNCTION_LINE("Failed to parse plugin");
+                DEBUG_FUNCTION_LINE_ERR("Failed to parse plugin");
             }
         }
         free(inflatedData);
