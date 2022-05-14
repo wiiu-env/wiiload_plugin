@@ -7,8 +7,7 @@
 #include <coreinit/dynload.h>
 #include <coreinit/title.h>
 #include <cstring>
-#include <rpxloader.h>
-#include <string>
+#include <rpxloader/rpxloader.h>
 #include <sysapp/launch.h>
 #include <sysapp/title.h>
 #include <vector>
@@ -148,7 +147,7 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
 
     // Do we need to unzip this thing?
     if (haxx[4] > 0 || haxx[5] > 4) {
-        unsigned char *inflatedData = nullptr;
+        unsigned char *inflatedData;
 
         // We need to unzip...
         if (loadAddress[0] == 'P' && loadAddress[1] == 'K' && loadAddress[2] == 0x03 && loadAddress[3] == 0x04) {
@@ -240,34 +239,34 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
         } else if (inflatedData[0x7] == 0xCA && inflatedData[0x8] == 0xFE && inflatedData[0x9] == 0x50 && inflatedData[0xA] == 0x4C) {
             auto newContainer = PluginUtils::getPluginForBuffer((char *) inflatedData, fileSize);
             if (newContainer) {
-                auto oldPlugins = PluginUtils::getLoadedPlugins(8);
-                std::vector<PluginContainer> finalList;
+                auto plugins = PluginUtils::getLoadedPlugins(32);
 
-                finalList.push_back(newContainer.value());
-                for (auto &plugin : oldPlugins) {
-                    if (plugin.metaInformation.getName() == newContainer->metaInformation.getName() &&
-                        plugin.metaInformation.getAuthor() == newContainer->metaInformation.getAuthor()) {
-                        DEBUG_FUNCTION_LINE("Skipping duplicate");
-                        PluginUtils::destroyPluginContainer(plugin);
-                        continue;
-                    } else {
-                        finalList.push_back(plugin);
-                    }
-                }
+                auto &metaInformation = newContainer.value()->metaInformation;
+
+                // remove plugins with the same name and author as our new plugin
+
+                plugins.erase(std::remove_if(plugins.begin(), plugins.end(),
+                                             [metaInformation](auto &plugin) {
+                                                 return plugin->metaInformation->getName() == metaInformation->getName() &&
+                                                        plugin->metaInformation->getAuthor() == metaInformation->getAuthor();
+                                             }),
+                              plugins.end());
+
+                // at the new plugin
+                plugins.push_back(std::move(newContainer.value()));
 
 #ifdef VERBOSE_DEBUG
-                for (auto &plugin : finalList) {
-                    DEBUG_FUNCTION_LINE_VERBOSE("name: %s", plugin.getMetaInformation().getName().c_str());
-                    DEBUG_FUNCTION_LINE_VERBOSE("author: %s", plugin.getMetaInformation().getAuthor().c_str());
-                    DEBUG_FUNCTION_LINE_VERBOSE("handle: %08X", plugin.getPluginData().getHandle());
+                for (auto &plugin : plugins) {
+                    DEBUG_FUNCTION_LINE_VERBOSE("name: %s", plugin->getMetaInformation()->getName().c_str());
+                    DEBUG_FUNCTION_LINE_VERBOSE("author: %s", plugin->getMetaInformation()->getAuthor().c_str());
+                    DEBUG_FUNCTION_LINE_VERBOSE("handle: %08X", plugin->getPluginData()->getHandle());
                     DEBUG_FUNCTION_LINE_VERBOSE("====");
                 }
 #endif
 
-                if (PluginUtils::LoadAndLinkOnRestart(finalList) != 0) {
-                    DEBUG_FUNCTION_LINE("Failed to load & link");
+                if (PluginUtils::LoadAndLinkOnRestart(plugins) != 0) {
+                    DEBUG_FUNCTION_LINE_ERR("Failed to load & link");
                 }
-                PluginUtils::destroyPluginContainer(finalList);
 
                 free(loadAddress);
                 free(inflatedData);
@@ -305,7 +304,7 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
 
     if (loadedRPX) {
         DEBUG_FUNCTION_LINE("Starting a homebrew title!");
-        RL_LoadFromSDOnNextLaunch(file_path);
+        RPXLoader_LoadFromSDOnNextLaunch(file_path);
 
         uint64_t titleID = _SYSGetSystemApplicationTitleId(SYSTEM_APP_ID_HEALTH_AND_SAFETY);
         _SYSLaunchTitleWithStdArgsInNoSplash(titleID, nullptr);
