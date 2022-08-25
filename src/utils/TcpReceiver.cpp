@@ -82,10 +82,10 @@ void TcpReceiver::executeThread() {
             //serverReceiveFinished(this, ipAddress, result);
             close(clientSocket);
 
-            if (result > 0)
-                if (result >= 0) {
-                    break;
-                }
+
+            if (result >= 0) {
+                break;
+            }
         } else {
             DEBUG_FUNCTION_LINE_ERR("Server socket accept failed socket: %i errno: %d", clientSocket, errno);
             OSSleepTicks(OSMicrosecondsToTicks(100000));
@@ -299,11 +299,16 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
     free(loadAddress);
 
     if (!res) {
+        DEBUG_FUNCTION_LINE_ERR("Failed to launch save a executable to the sd card");
         return NOT_ENOUGH_MEMORY;
     }
 
     if (loadedRPX) {
-        RPXLoader_LaunchHomebrew(file_path)
+        RPXLoaderStatus launchRes;
+        if ((launchRes = RPXLoader_LaunchHomebrew(file_path)) != RPX_LOADER_RESULT_SUCCESS) {
+            DEBUG_FUNCTION_LINE_ERR("Failed to start %s %s", file_path, RPXLoader_GetStatusStr(launchRes));
+            return NOT_ENOUGH_MEMORY;
+        }
 
         return fileSize;
     }
