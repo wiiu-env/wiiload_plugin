@@ -303,11 +303,8 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
     }
 
     if (loadedRPX) {
-        DEBUG_FUNCTION_LINE("Starting a homebrew title!");
-        RPXLoader_LoadFromSDOnNextLaunch(file_path);
+        RPXLoader_LaunchHomebrew(file_path)
 
-        uint64_t titleID = _SYSGetSystemApplicationTitleId(SYSTEM_APP_ID_HEALTH_AND_SAFETY);
-        _SYSLaunchTitleWithStdArgsInNoSplash(titleID, nullptr);
         return fileSize;
     }
 
