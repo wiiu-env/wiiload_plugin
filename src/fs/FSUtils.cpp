@@ -132,10 +132,14 @@ int32_t FSUtils::CreateSubfolder(const char *fullpath) {
 BOOL FSUtils::saveBufferToFile(const char *path, void *buffer, uint32_t size) {
     CFile file(path, CFile::WriteOnly);
     if (!file.isOpen()) {
-        DEBUG_FUNCTION_LINE("Failed to open %s\n", path);
+        DEBUG_FUNCTION_LINE_ERR("Failed to open %s\n", path);
         return false;
     }
-    file.write((const uint8_t *) buffer, size);
+    if (file.write((const uint8_t *) buffer, size) != size) {
+        DEBUG_FUNCTION_LINE_ERR("Failed to write file %s\n", path);
+        file.close();
+        return false;
+    }
     file.close();
     return true;
 }
