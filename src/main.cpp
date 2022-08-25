@@ -1,3 +1,4 @@
+#include "globals.h"
 #include "utils/TcpReceiver.h"
 #include "utils/logger.h"
 #include <coreinit/debug.h>
@@ -18,7 +19,8 @@ INITIALIZE_PLUGIN() {
     RPXLoaderStatus error;
     if ((error = RPXLoader_InitLibrary()) != RPX_LOADER_RESULT_SUCCESS) {
         DEBUG_FUNCTION_LINE_ERR("WiiLoad Plugin: Failed to init RPXLoader. Error %d", error);
-        OSFatal("WiiLoad Plugin: Failed to init RPXLoader.");
+    } else {
+        gLibRPXLoaderInitDone = true;
     }
 }
 
