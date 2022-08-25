@@ -16,7 +16,7 @@ TcpReceiver *thread = nullptr;
 
 INITIALIZE_PLUGIN() {
     RPXLoaderStatus error;
-    if ((error = RPXLoader_Init()) != RPX_LOADER_RESULT_SUCCESS) {
+    if ((error = RPXLoader_InitLibrary()) != RPX_LOADER_RESULT_SUCCESS) {
         DEBUG_FUNCTION_LINE_ERR("WiiLoad Plugin: Failed to init RPXLoader. Error %d", error);
         OSFatal("WiiLoad Plugin: Failed to init RPXLoader.");
     }
