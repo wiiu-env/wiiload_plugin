@@ -1,5 +1,6 @@
 #include "TcpReceiver.h"
 #include "fs/FSUtils.h"
+#include "globals.h"
 #include "utils/net.h"
 #include "utils/utils.h"
 #include <algorithm>
@@ -299,11 +300,15 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
     free(loadAddress);
 
     if (!res) {
-        DEBUG_FUNCTION_LINE_ERR("Failed to launch save a executable to the sd card");
+        DEBUG_FUNCTION_LINE_ERR("Failed to launch save a homebrew to the sd card");
         return NOT_ENOUGH_MEMORY;
     }
 
     if (loadedRPX) {
+        if (!gLibRPXLoaderInitDone) {
+            DEBUG_FUNCTION_LINE_ERR("RPXLoaderModule missing, failed to launch homebrew.");
+            return NOT_SUPPORTED;
+        }
         RPXLoaderStatus launchRes;
         if ((launchRes = RPXLoader_LaunchHomebrew(file_path)) != RPX_LOADER_RESULT_SUCCESS) {
             DEBUG_FUNCTION_LINE_ERR("Failed to start %s %s", file_path, RPXLoader_GetStatusStr(launchRes));

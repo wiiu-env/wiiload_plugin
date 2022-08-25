@@ -14,6 +14,7 @@ public:
         FILE_READ_ERROR    = -3,
         NOT_ENOUGH_MEMORY  = -4,
         NOT_A_VALID_PLUGIN = -5,
+        NOT_SUPPORTED      = -6,
     };
 
     explicit TcpReceiver(int32_t port);
