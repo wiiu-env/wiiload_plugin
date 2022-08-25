@@ -107,7 +107,7 @@ int32_t CFile::read(uint8_t *ptr, size_t size) {
     return -1;
 }
 
-int32_t CFile::write(const uint8_t *ptr, size_t size) {
+int64_t CFile::write(const uint8_t *ptr, size_t size) {
     if (iFd >= 0) {
         size_t done = 0;
         while (done < size) {

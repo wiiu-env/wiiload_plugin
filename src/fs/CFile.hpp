@@ -42,7 +42,7 @@ public:
 
     int32_t read(uint8_t *ptr, size_t size);
 
-    int32_t write(const uint8_t *ptr, size_t size);
+    int64_t write(const uint8_t *ptr, size_t size);
 
     int32_t fwrite(const char *format, ...);
 
