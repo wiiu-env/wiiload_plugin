@@ -24,19 +24,22 @@ INITIALIZE_PLUGIN() {
     }
 }
 
-/* Entry point */
-ON_APPLICATION_START() {
-    initLogging();
-    DEBUG_FUNCTION_LINE("Start wiiload thread");
-    thread = new TcpReceiver(4299);
-}
-
 void stopThread() {
     if (thread != nullptr) {
         delete thread;
         thread = nullptr;
     }
 }
+
+/* Entry point */
+ON_APPLICATION_START() {
+    initLogging();
+    stopThread();
+    DEBUG_FUNCTION_LINE("Start wiiload thread");
+    thread = new TcpReceiver(4299);
+}
+
+
 
 ON_APPLICATION_REQUESTS_EXIT() {
     DEBUG_FUNCTION_LINE("Stop wiiload thread");
