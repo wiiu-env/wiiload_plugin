@@ -27,7 +27,7 @@ public:
     typedef void (*Callback)(CThread *thread, void *arg);
 
     //! constructor
-    explicit CThread(int32_t iAttr, int32_t iPriority = 16, int32_t iStackSize = 0x8000, CThread::Callback callback = nullptr, void *callbackArg = nullptr)
+    explicit CThread(int32_t iAttr, int32_t iPriority = 16, int32_t iStackSize = 0x8000, CThread::Callback callback = nullptr, void *callbackArg = nullptr, const std::string &threadName = "")
         : pThread(nullptr), pThreadStack(nullptr), pCallback(callback), pCallbackArg(callbackArg) {
         //! save attribute assignment
         iAttributes = iAttr;
@@ -38,7 +38,8 @@ public:
         //! create the thread
         if (pThread && pThreadStack) {
             OSCreateThread(pThread, &CThread::threadCallback, 1, (char *) this, pThreadStack + iStackSize, iStackSize, iPriority, iAttributes);
-            OSSetThreadName(pThread, "Wiiload Thread");
+            pThreadName = threadName;
+            OSSetThreadName(pThread, pThreadName.c_str());
         }
     }
 
@@ -141,4 +142,5 @@ private:
     uint8_t *pThreadStack;
     Callback pCallback;
     void *pCallbackArg;
+    std::string pThreadName;
 };

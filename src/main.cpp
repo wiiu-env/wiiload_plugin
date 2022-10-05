@@ -40,7 +40,6 @@ ON_APPLICATION_START() {
 }
 
 
-
 ON_APPLICATION_REQUESTS_EXIT() {
     DEBUG_FUNCTION_LINE("Stop wiiload thread");
     stopThread();
