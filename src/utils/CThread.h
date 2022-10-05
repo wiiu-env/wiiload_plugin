@@ -108,7 +108,7 @@ public:
                 }
                 OSJoinThread(pThread, nullptr);
             } else {
-                DEBUG_FUNCTION_LINE_WARN("Thread \"%s\" has already been terminated!", pThreadName.c_str());
+                DEBUG_FUNCTION_LINE_WARN("Thread \"%s\" has already been terminated!!!", pThreadName.c_str());
             }
         }
         //! free the thread stack buffer
