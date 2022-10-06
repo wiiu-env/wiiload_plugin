@@ -4,13 +4,13 @@
 #include "utils/net.h"
 #include "utils/utils.h"
 #include <algorithm>
+#include <coreinit/cache.h>
 #include <coreinit/debug.h>
 #include <coreinit/dynload.h>
 #include <coreinit/title.h>
 #include <cstring>
 #include <rpxloader/rpxloader.h>
 #include <sysapp/launch.h>
-#include <sysapp/title.h>
 #include <vector>
 #include <wups_backend/PluginUtils.h>
 #include <zlib.h>
@@ -30,18 +30,16 @@ TcpReceiver::TcpReceiver(int32_t port)
 
 TcpReceiver::~TcpReceiver() {
     exitRequested = true;
-
+    OSMemoryBarrier();
     if (serverSocket >= 0) {
-        shutdown(serverSocket, SHUT_RDWR);
-        close(serverSocket);
-        serverSocket = -1;
+        cleanupSocket();
     }
 }
 
-void TcpReceiver::executeThread() {
+bool TcpReceiver::createSocket() {
     serverSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
     if (serverSocket < 0) {
-        return;
+        return false;
     }
 
     uint32_t enable = 1;
@@ -53,48 +51,62 @@ void TcpReceiver::executeThread() {
     bindAddress.sin_port        = serverPort;
     bindAddress.sin_addr.s_addr = INADDR_ANY;
 
-    socklen_t len;
+
     int32_t ret;
     if ((ret = bind(serverSocket, (struct sockaddr *) &bindAddress, 16)) < 0) {
-        shutdown(serverSocket, SHUT_RDWR);
-        close(serverSocket);
-        serverSocket = -1;
-        return;
+        cleanupSocket();
+        return false;
     }
 
     if ((ret = listen(serverSocket, 1)) < 0) {
+        cleanupSocket();
+        return false;
+    }
+    return true;
+}
+
+void TcpReceiver::cleanupSocket() {
+    if (serverSocket >= 0) {
         shutdown(serverSocket, SHUT_RDWR);
         close(serverSocket);
         serverSocket = -1;
-        return;
     }
+}
 
-    struct sockaddr_in clientAddr {};
-    memset(&clientAddr, 0, sizeof(clientAddr));
-
+void TcpReceiver::executeThread() {
+    socklen_t len;
     while (!exitRequested) {
-        len                  = 16;
+        if (serverSocket < 0) {
+            if (!createSocket()) {
+                DEBUG_FUNCTION_LINE_WARN("Starting the wiiload server failed. Check the network connection.");
+                OSSleepTicks(OSSecondsToTicks(5));
+            }
+            continue;
+        }
+        struct sockaddr_in clientAddr {};
+        memset(&clientAddr, 0, sizeof(clientAddr));
+
+        len = 16;
+        DEBUG_FUNCTION_LINE("Waiting for wiiload connection");
         int32_t clientSocket = accept(serverSocket, (struct sockaddr *) &clientAddr, &len);
         if (clientSocket >= 0) {
             uint32_t ipAddress = clientAddr.sin_addr.s_addr;
-            //serverReceiveStart(this, ipAddress);
-            int32_t result = loadToMemory(clientSocket, ipAddress);
-            //serverReceiveFinished(this, ipAddress, result);
+            int32_t result     = loadToMemory(clientSocket, ipAddress);
             close(clientSocket);
-
 
             if (result >= 0) {
                 break;
             }
         } else {
-            DEBUG_FUNCTION_LINE_ERR("Server socket accept failed socket: %i errno: %d", clientSocket, errno);
-            OSSleepTicks(OSMicrosecondsToTicks(100000));
+            if (!exitRequested) {
+                DEBUG_FUNCTION_LINE_WARN("Error accepting the socket");
+                cleanupSocket();
+                OSSleepTicks(OSSecondsToTicks(1));
+            }
         }
     }
-
-    shutdown(serverSocket, SHUT_RDWR);
-    close(serverSocket);
-    serverSocket = -1;
+    cleanupSocket();
+    DEBUG_FUNCTION_LINE("Stopping wiiload server.");
 }
 
 int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
