@@ -28,23 +28,19 @@ INITIALIZE_PLUGIN() {
 /* Entry point */
 ON_APPLICATION_START() {
     initLogging();
-
-    if (thread != nullptr) {
-        DEBUG_FUNCTION_LINE_WARN("The wiiload thread is still allocated but not running.");
-        thread->skipJoin = true;
-        delete thread;
-        thread = nullptr;
-    }
     DEBUG_FUNCTION_LINE("Start wiiload thread");
-    thread = new TcpReceiver(4299);
+    thread = new (std::nothrow) TcpReceiver(4299);
+    if (thread == nullptr) {
+        DEBUG_FUNCTION_LINE_ERR("Failed to create wiiload thread");
+    }
 }
 
 ON_APPLICATION_ENDS() {
-    DEBUG_FUNCTION_LINE("Stop wiiload thread");
+    DEBUG_FUNCTION_LINE("Stop wiiload thread!");
     if (thread != nullptr) {
         delete thread;
         thread = nullptr;
     }
-
+    DEBUG_FUNCTION_LINE_VERBOSE("Done!");
     deinitLogging();
 }
