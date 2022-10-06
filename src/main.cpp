@@ -22,6 +22,7 @@ INITIALIZE_PLUGIN() {
     } else {
         gLibRPXLoaderInitDone = true;
     }
+    thread = nullptr;
 }
 
 /* Entry point */
@@ -38,7 +39,7 @@ ON_APPLICATION_START() {
     thread = new TcpReceiver(4299);
 }
 
-ON_APPLICATION_REQUESTS_EXIT() {
+ON_APPLICATION_ENDS() {
     DEBUG_FUNCTION_LINE("Stop wiiload thread");
     if (thread != nullptr) {
         delete thread;
