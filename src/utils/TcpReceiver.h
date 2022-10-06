@@ -24,6 +24,9 @@ public:
 private:
     void executeThread() override;
 
+    bool createSocket();
+    void cleanupSocket();
+
     static int32_t loadToMemory(int32_t clientSocket, uint32_t ipAddress);
 
     bool exitRequested;
