@@ -24,25 +24,26 @@ INITIALIZE_PLUGIN() {
     }
 }
 
-void stopThread() {
-    if (thread != nullptr) {
-        delete thread;
-        thread = nullptr;
-    }
-}
-
 /* Entry point */
 ON_APPLICATION_START() {
     initLogging();
-    stopThread();
+
+    if (thread != nullptr) {
+        DEBUG_FUNCTION_LINE_WARN("The wiiload thread is still allocated but not running.");
+        thread->skipJoin = true;
+        delete thread;
+        thread = nullptr;
+    }
     DEBUG_FUNCTION_LINE("Start wiiload thread");
     thread = new TcpReceiver(4299);
 }
 
-
 ON_APPLICATION_REQUESTS_EXIT() {
     DEBUG_FUNCTION_LINE("Stop wiiload thread");
-    stopThread();
+    if (thread != nullptr) {
+        delete thread;
+        thread = nullptr;
+    }
 
     deinitLogging();
 }
