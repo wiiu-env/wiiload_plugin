@@ -1,14 +1,5 @@
 #pragma once
+#include "version.h"
 
-/* Main */
-#ifdef __cplusplus
-extern "C" {
-#endif
-#include <cstdint>
-#include <nsysnet/socket.h>
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif
+#define VERSION      "v0.1"
+#define VERSION_FULL VERSION VERSION_EXTRA
