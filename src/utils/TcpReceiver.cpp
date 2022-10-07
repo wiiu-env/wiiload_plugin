@@ -77,33 +77,35 @@ void TcpReceiver::executeThread() {
     socklen_t len;
     while (!exitRequested) {
         if (serverSocket < 0) {
-            if (!createSocket()) {
-                DEBUG_FUNCTION_LINE_WARN("Starting the wiiload server failed. Check the network connection.");
-                OSSleepTicks(OSSecondsToTicks(5));
+            if (!createSocket() && !exitRequested) {
+                if (errno != EBUSY) {
+                    DEBUG_FUNCTION_LINE_WARN("Create socket failed %d", errno);
+                }
+                OSSleepTicks(OSMillisecondsToTicks(10));
             }
             continue;
         }
         struct sockaddr_in clientAddr {};
         memset(&clientAddr, 0, sizeof(clientAddr));
 
-        len = 16;
-        DEBUG_FUNCTION_LINE("Waiting for wiiload connection");
+        len                  = 16;
         int32_t clientSocket = accept(serverSocket, (struct sockaddr *) &clientAddr, &len);
         if (clientSocket >= 0) {
             uint32_t ipAddress = clientAddr.sin_addr.s_addr;
-            int32_t result     = loadToMemory(clientSocket, ipAddress);
+            DEBUG_FUNCTION_LINE("Waiting for wiiload connection");
+            int32_t result = loadToMemory(clientSocket, ipAddress);
             close(clientSocket);
 
             if (result >= 0) {
                 break;
             }
-        } else {
-            if (!exitRequested) {
-                DEBUG_FUNCTION_LINE_WARN("Error accepting the socket");
-                cleanupSocket();
-                OSSleepTicks(OSSecondsToTicks(1));
+        } else if (!exitRequested) {
+            if (errno != EBUSY) {
+                DEBUG_FUNCTION_LINE_WARN("Accept failed %d", errno);
             }
+            OSSleepTicks(OSMillisecondsToTicks(10));
         }
+        OSSleepTicks(OSMillisecondsToTicks(1));
     }
     cleanupSocket();
     DEBUG_FUNCTION_LINE("Stopping wiiload server.");
