@@ -102,6 +102,7 @@ void TcpReceiver::executeThread() {
         } else if (!exitRequested) {
             if (errno != EBUSY) {
                 DEBUG_FUNCTION_LINE_WARN("Accept failed %d", errno);
+                cleanupSocket();
             }
             OSSleepTicks(OSMillisecondsToTicks(10));
         }
