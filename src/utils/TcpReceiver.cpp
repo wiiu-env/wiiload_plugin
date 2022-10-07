@@ -24,7 +24,7 @@
 #define WUHB_TEMP_FILE_2_EX "wiiu/apps/temp2.wuhb"
 
 TcpReceiver::TcpReceiver(int32_t port)
-    : CThread(CThread::eAttributeAffCore1, 17, 0x20000, nullptr, nullptr, "Wiiload Thread"), exitRequested(false), serverPort(port), serverSocket(-1) {
+    : CThread(CThread::eAttributeAffCore1, 16, 0x20000, nullptr, nullptr, "Wiiload Thread"), exitRequested(false), serverPort(port), serverSocket(-1) {
     resumeThread();
 }
 
