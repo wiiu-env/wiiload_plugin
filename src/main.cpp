@@ -27,6 +27,27 @@ INITIALIZE_PLUGIN() {
     } else {
         gLibRPXLoaderInitDone = true;
     }
+
+    // Open storage to read values
+    WUPSStorageError storageRes = WUPS_OpenStorage();
+    if (storageRes != WUPS_STORAGE_ERROR_SUCCESS) {
+        DEBUG_FUNCTION_LINE_ERR("Failed to open storage %s (%d)", WUPS_GetStorageStatusStr(storageRes), storageRes);
+    } else {
+        if ((storageRes = WUPS_GetBool(nullptr, WIILOAD_ENABLED_STRING, &gWiiloadServerEnabled)) == WUPS_STORAGE_ERROR_NOT_FOUND) {
+            // Add the value to the storage if it's missing.
+            if (WUPS_StoreBool(nullptr, WIILOAD_ENABLED_STRING, gWiiloadServerEnabled) != WUPS_STORAGE_ERROR_SUCCESS) {
+                DEBUG_FUNCTION_LINE_ERR("Failed to store bool");
+            }
+        } else if (storageRes != WUPS_STORAGE_ERROR_SUCCESS) {
+            DEBUG_FUNCTION_LINE_ERR("Failed to get bool %s (%d)", WUPS_GetStorageStatusStr(storageRes), storageRes);
+        }
+
+        // Close storage
+        if (WUPS_CloseStorage() != WUPS_STORAGE_ERROR_SUCCESS) {
+            DEBUG_FUNCTION_LINE_ERR("Failed to close storage");
+        }
+    }
+
     thread = nullptr;
 }
 
