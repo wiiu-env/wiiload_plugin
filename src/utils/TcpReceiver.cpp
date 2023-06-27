@@ -252,18 +252,18 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
             file_path = RPX_TEMP_FILE_EX;
             loadedRPX = true;
         } else if (inflatedData[0x7] == 0xCA && inflatedData[0x8] == 0xFE && inflatedData[0x9] == 0x50 && inflatedData[0xA] == 0x4C) {
-            auto newContainer = PluginUtils::getPluginForBuffer((char *) inflatedData, fileSize);
+            auto newContainer = WUPSBackend::PluginUtils::getPluginForBuffer((char *) inflatedData, fileSize);
             if (newContainer) {
-                auto plugins = PluginUtils::getLoadedPlugins(32);
+                auto plugins = WUPSBackend::PluginUtils::getLoadedPlugins(32);
 
-                auto &metaInformation = newContainer.value()->metaInformation;
+                auto &metaInformation = newContainer.value()->getMetaInformation();
 
                 // remove plugins with the same name and author as our new plugin
 
                 plugins.erase(std::remove_if(plugins.begin(), plugins.end(),
                                              [metaInformation](auto &plugin) {
-                                                 return plugin->metaInformation->getName() == metaInformation->getName() &&
-                                                        plugin->metaInformation->getAuthor() == metaInformation->getAuthor();
+                                                 return plugin->getMetaInformation()->getName() == metaInformation->getName() &&
+                                                        plugin->getMetaInformation()->getAuthor() == metaInformation->getAuthor();
                                              }),
                               plugins.end());
 
@@ -279,7 +279,7 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
                 }
 #endif
 
-                if (PluginUtils::LoadAndLinkOnRestart(plugins) != 0) {
+                if (WUPSBackend::PluginUtils::LoadAndLinkOnRestart(plugins) != 0) {
                     DEBUG_FUNCTION_LINE_ERR("Failed to load & link");
                 }
 
