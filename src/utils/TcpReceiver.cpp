@@ -298,10 +298,14 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
                 _SYSLaunchTitleWithStdArgsInNoSplash(OSGetTitleID(), nullptr);
                 return fileSize;
             } else {
-                if (NotificationModule_AddErrorNotification("Wiiload plugin: Failed to load or parse the plugin. Launching will be aborted.") != NOTIFICATION_MODULE_RESULT_SUCCESS) {
+                if (NotificationModule_AddErrorNotification("Wiiload plugin: Failed to load or parse the plugin. Incompatible version? Launching will be aborted.") != NOTIFICATION_MODULE_RESULT_SUCCESS) {
                     DEBUG_FUNCTION_LINE_ERR("Failed to display error notification");
                 }
                 DEBUG_FUNCTION_LINE_ERR("Failed to parse plugin");
+            }
+        } else {
+            if (NotificationModule_AddErrorNotification("Wiiload plugin: Failed load file: Unknown header detected. Launching will be aborted.") != NOTIFICATION_MODULE_RESULT_SUCCESS) {
+                DEBUG_FUNCTION_LINE_ERR("Failed to display error notification");
             }
         }
         free(inflatedData);
@@ -321,8 +325,10 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
         } else if (loadAddress[0x7] == 0xCA && loadAddress[0x8] == 0xFE && loadAddress[0x9] == 0x50) {
             OSFatal("Not implemented yet");
         }
-        if (NotificationModule_AddErrorNotification("Failed to write file to the sd card.") != NOTIFICATION_MODULE_RESULT_SUCCESS) {
-            DEBUG_FUNCTION_LINE_ERR("Failed to display error notification");
+        if (!res) {
+            if (NotificationModule_AddErrorNotification("Wiiload plugin: Failed to write file to the sd card.") != NOTIFICATION_MODULE_RESULT_SUCCESS) {
+                DEBUG_FUNCTION_LINE_ERR("Failed to display error notification");
+            }
         }
     }
 
@@ -335,11 +341,17 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
 
     if (loadedRPX) {
         if (!gLibRPXLoaderInitDone) {
+            if (NotificationModule_AddErrorNotification("Wiiload plugin: RPXLoaderModule missing, failed to launch homebrew.") != NOTIFICATION_MODULE_RESULT_SUCCESS) {
+                DEBUG_FUNCTION_LINE_ERR("Failed to display error notification");
+            }
             DEBUG_FUNCTION_LINE_ERR("RPXLoaderModule missing, failed to launch homebrew.");
             return NOT_SUPPORTED;
         }
         RPXLoaderStatus launchRes;
         if ((launchRes = RPXLoader_LaunchHomebrew(file_path)) != RPX_LOADER_RESULT_SUCCESS) {
+            if (NotificationModule_AddErrorNotification("Wiiload plugin: RPXLoader_LaunchHomebrew failed. Launching will be aborted.") != NOTIFICATION_MODULE_RESULT_SUCCESS) {
+                DEBUG_FUNCTION_LINE_ERR("Failed to display error notification");
+            }
             DEBUG_FUNCTION_LINE_ERR("Failed to start %s %s", file_path, RPXLoader_GetStatusStr(launchRes));
             return NOT_ENOUGH_MEMORY;
         }
