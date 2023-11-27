@@ -3,6 +3,7 @@
 #include "utils/TcpReceiver.h"
 #include "utils/logger.h"
 #include <coreinit/debug.h>
+#include <notifications/notifications.h>
 #include <rpxloader/rpxloader.h>
 #include <wups.h>
 #include <wups/config/WUPSConfigItemBoolean.h>
@@ -26,6 +27,15 @@ INITIALIZE_PLUGIN() {
         DEBUG_FUNCTION_LINE_ERR("WiiLoad Plugin: Failed to init RPXLoader. Error %d", error);
     } else {
         gLibRPXLoaderInitDone = true;
+    }
+
+    NotificationModuleStatus res;
+    if ((res = NotificationModule_InitLibrary()) != NOTIFICATION_MODULE_RESULT_SUCCESS) {
+        DEBUG_FUNCTION_LINE_ERR("Failed to init NotificationModule");
+        gNotificationModuleLoaded = false;
+    } else {
+        NotificationModule_SetDefaultValue(NOTIFICATION_MODULE_NOTIFICATION_TYPE_ERROR, NOTIFICATION_MODULE_DEFAULT_OPTION_DURATION_BEFORE_FADE_OUT, 10.0f);
+        gNotificationModuleLoaded = true;
     }
 
     // Open storage to read values

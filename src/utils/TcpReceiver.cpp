@@ -9,6 +9,7 @@
 #include <coreinit/dynload.h>
 #include <coreinit/title.h>
 #include <cstring>
+#include <notifications/notifications.h>
 #include <rpxloader/rpxloader.h>
 #include <sysapp/launch.h>
 #include <vector>
@@ -244,6 +245,10 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
                 file_path = WUHB_TEMP_FILE_2_EX;
             }
 
+            if (!res) {
+                NotificationModule_AddErrorNotification("Wiiload plugin: Failed to save .wuhb file to the sd card. Launching will be aborted.");
+            }
+
             loadedRPX = true;
         } else if (inflatedData[0x7] == 0xCA && inflatedData[0x8] == 0xFE && inflatedData[0x9] != 0x50 && inflatedData[0xA] != 0x4C) {
             DEBUG_FUNCTION_LINE("Try to load a .rpx");
@@ -251,6 +256,10 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
             res       = FSUtils::saveBufferToFile(RPX_TEMP_FILE, inflatedData, fileSize);
             file_path = RPX_TEMP_FILE_EX;
             loadedRPX = true;
+
+            if (!res) {
+                NotificationModule_AddErrorNotification("Wiiload plugin: Failed to save .rpx file to the sd card. Launching will be aborted.");
+            }
         } else if (inflatedData[0x7] == 0xCA && inflatedData[0x8] == 0xFE && inflatedData[0x9] == 0x50 && inflatedData[0xA] == 0x4C) {
             auto newContainer = WUPSBackend::PluginUtils::getPluginForBuffer((char *) inflatedData, fileSize);
             if (newContainer) {
@@ -259,7 +268,6 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
                 auto &metaInformation = newContainer.value()->getMetaInformation();
 
                 // remove plugins with the same name and author as our new plugin
-
                 plugins.erase(std::remove_if(plugins.begin(), plugins.end(),
                                              [metaInformation](auto &plugin) {
                                                  return plugin->getMetaInformation()->getName() == metaInformation->getName() &&
@@ -267,7 +275,7 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
                                              }),
                               plugins.end());
 
-                // at the new plugin
+                // add the new plugin
                 plugins.push_back(std::move(newContainer.value()));
 
 #ifdef VERBOSE_DEBUG
@@ -280,7 +288,8 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
 #endif
 
                 if (WUPSBackend::PluginUtils::LoadAndLinkOnRestart(plugins) != 0) {
-                    DEBUG_FUNCTION_LINE_ERR("Failed to load & link");
+                    DEBUG_FUNCTION_LINE_ERR("WUPSBackend::PluginUtils::LoadAndLinkOnRestart failed");
+                    NotificationModule_AddErrorNotification("Wiiload plugin: Failed to load plugin. Launching will be aborted.");
                 }
 
                 free(loadAddress);
@@ -289,6 +298,9 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
                 _SYSLaunchTitleWithStdArgsInNoSplash(OSGetTitleID(), nullptr);
                 return fileSize;
             } else {
+                if (NotificationModule_AddErrorNotification("Wiiload plugin: Failed to load or parse the plugin. Launching will be aborted.") != NOTIFICATION_MODULE_RESULT_SUCCESS) {
+                    DEBUG_FUNCTION_LINE_ERR("Failed to display error notification");
+                }
                 DEBUG_FUNCTION_LINE_ERR("Failed to parse plugin");
             }
         }
@@ -309,12 +321,15 @@ int32_t TcpReceiver::loadToMemory(int32_t clientSocket, uint32_t ipAddress) {
         } else if (loadAddress[0x7] == 0xCA && loadAddress[0x8] == 0xFE && loadAddress[0x9] == 0x50) {
             OSFatal("Not implemented yet");
         }
+        if (NotificationModule_AddErrorNotification("Failed to write file to the sd card.") != NOTIFICATION_MODULE_RESULT_SUCCESS) {
+            DEBUG_FUNCTION_LINE_ERR("Failed to display error notification");
+        }
     }
 
     free(loadAddress);
 
     if (!res) {
-        DEBUG_FUNCTION_LINE_ERR("Failed to launch save a homebrew to the sd card");
+        DEBUG_FUNCTION_LINE_ERR("Failed to launch/save a homebrew to the sd card");
         return NOT_ENOUGH_MEMORY;
     }
 

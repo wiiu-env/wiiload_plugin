@@ -51,7 +51,7 @@ CXXFLAGS += -DDEBUG -DVERBOSE_DEBUG -g
 CFLAGS += -DDEBUG -DVERBOSE_DEBUG -g
 endif
 
-LIBS	:= -lwups -lwut -lwupsbackend -lz -lrpxloader
+LIBS	:= -lwups -lwut -lwupsbackend -lz -lrpxloader -lnotifications
 
 #-------------------------------------------------------------------------------
 # list of directories containing libraries, this must be the top level
