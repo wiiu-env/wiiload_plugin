@@ -19,7 +19,11 @@ WUPS_USE_WUT_DEVOPTAB();
 WUPS_USE_STORAGE("wiiload"); // Unqiue id for the storage api
 #define WIILOAD_ENABLED_STRING "enabled"
 
-TcpReceiver *thread = nullptr;
+std::unique_ptr<TcpReceiver> tcpReceiverThread = nullptr;
+
+
+static WUPSConfigAPICallbackStatus ConfigMenuOpenedCallback(WUPSConfigCategoryHandle rootHandle);
+static void ConfigMenuClosedCallback();
 
 INITIALIZE_PLUGIN() {
     RPXLoaderStatus error;
@@ -31,79 +35,72 @@ INITIALIZE_PLUGIN() {
 
     NotificationModuleStatus res;
     if ((res = NotificationModule_InitLibrary()) != NOTIFICATION_MODULE_RESULT_SUCCESS) {
-        DEBUG_FUNCTION_LINE_ERR("Failed to init NotificationModule");
+        DEBUG_FUNCTION_LINE_ERR("Failed to init NotificationModule: %s", NotificationModule_GetStatusStr(res));
         gNotificationModuleLoaded = false;
     } else {
         NotificationModule_SetDefaultValue(NOTIFICATION_MODULE_NOTIFICATION_TYPE_ERROR, NOTIFICATION_MODULE_DEFAULT_OPTION_DURATION_BEFORE_FADE_OUT, 10.0f);
         gNotificationModuleLoaded = true;
     }
 
-    // Open storage to read values
-    WUPSStorageError storageRes = WUPS_OpenStorage();
-    if (storageRes != WUPS_STORAGE_ERROR_SUCCESS) {
-        DEBUG_FUNCTION_LINE_ERR("Failed to open storage %s (%d)", WUPS_GetStorageStatusStr(storageRes), storageRes);
-    } else {
-        if ((storageRes = WUPS_GetBool(nullptr, WIILOAD_ENABLED_STRING, &gWiiloadServerEnabled)) == WUPS_STORAGE_ERROR_NOT_FOUND) {
-            // Add the value to the storage if it's missing.
-            if (WUPS_StoreBool(nullptr, WIILOAD_ENABLED_STRING, gWiiloadServerEnabled) != WUPS_STORAGE_ERROR_SUCCESS) {
-                DEBUG_FUNCTION_LINE_ERR("Failed to store bool");
-            }
-        } else if (storageRes != WUPS_STORAGE_ERROR_SUCCESS) {
-            DEBUG_FUNCTION_LINE_ERR("Failed to get bool %s (%d)", WUPS_GetStorageStatusStr(storageRes), storageRes);
-        }
-
-        // Close storage
-        if (WUPS_CloseStorage() != WUPS_STORAGE_ERROR_SUCCESS) {
-            DEBUG_FUNCTION_LINE_ERR("Failed to close storage");
-        }
+    WUPSConfigAPIOptionsV1 configOptions = {.name = "Wiiload Plugin"};
+    if (WUPSConfigAPI_Init(configOptions, ConfigMenuOpenedCallback, ConfigMenuClosedCallback) != WUPSCONFIG_API_RESULT_SUCCESS) {
+        DEBUG_FUNCTION_LINE_ERR("Failed to init config api");
     }
 
-    thread = nullptr;
+    if (WUPSStorageAPI::GetOrStoreDefault(WIILOAD_ENABLED_STRING, gWiiloadServerEnabled, true) != WUPS_STORAGE_ERROR_SUCCESS) {
+        DEBUG_FUNCTION_LINE_ERR("Failed to get or create item \"%s\"", WIILOAD_ENABLED_STRING);
+    }
+
+    if (WUPSStorageAPI::SaveStorage() != WUPS_STORAGE_ERROR_SUCCESS) {
+        DEBUG_FUNCTION_LINE_ERR("Failed to save storage");
+    }
 }
 
 void gServerEnabledChanged(ConfigItemBoolean *item, bool newValue) {
+    if (std::string_view(WIILOAD_ENABLED_STRING) != item->identifier) {
+        DEBUG_FUNCTION_LINE_WARN("Unexpected identifier in bool callback: %s", item->identifier);
+        return;
+    }
     DEBUG_FUNCTION_LINE_VERBOSE("New value in gWiiloadServerEnabled: %d", newValue);
     gWiiloadServerEnabled = newValue;
-    if (thread) {
-        delete thread;
-        thread = nullptr;
-    }
+
+    tcpReceiverThread.reset();
+
     if (gWiiloadServerEnabled) {
         DEBUG_FUNCTION_LINE("Starting server!");
-        thread = new (std::nothrow) TcpReceiver(4299);
-        if (thread == nullptr) {
+        tcpReceiverThread = std::make_unique<TcpReceiver>(4299);
+
+        if (tcpReceiverThread == nullptr) {
             DEBUG_FUNCTION_LINE_ERR("Failed to create wiiload thread");
         }
     } else {
         DEBUG_FUNCTION_LINE("Wiiload server has been stopped!");
     }
     // If the value has changed, we store it in the storage.
-    auto res = WUPS_StoreInt(nullptr, item->configId, gWiiloadServerEnabled);
+    auto res = WUPSStorageAPI::Store(item->identifier, gWiiloadServerEnabled);
     if (res != WUPS_STORAGE_ERROR_SUCCESS) {
-        DEBUG_FUNCTION_LINE_ERR("Failed to store gWiiloadServerEnabled: %s (%d)", WUPS_GetStorageStatusStr(res), res);
+        DEBUG_FUNCTION_LINE_ERR("Failed to store gWiiloadServerEnabled: %s", WUPSStorageAPI_GetStatusStr(res));
     }
 }
 
-WUPS_GET_CONFIG() {
-    // We open the storage, so we can persist the configuration the user did.
-    if (WUPS_OpenStorage() != WUPS_STORAGE_ERROR_SUCCESS) {
-        DEBUG_FUNCTION_LINE_ERR("Failed to open storage");
-        return 0;
+static WUPSConfigAPICallbackStatus ConfigMenuOpenedCallback(WUPSConfigCategoryHandle rootHandle) {
+    try {
+        WUPSConfigCategory root = WUPSConfigCategory(rootHandle);
+
+        root.add(WUPSConfigItemBoolean::Create(WIILOAD_ENABLED_STRING, "Enable Wiiload",
+                                               true, gWiiloadServerEnabled,
+                                               &gServerEnabledChanged));
+
+    } catch (std::exception &e) {
+        OSReport("Exception T_T : %s\n", e.what());
+        return WUPSCONFIG_API_CALLBACK_RESULT_ERROR;
     }
-
-    WUPSConfigHandle config;
-    WUPSConfig_CreateHandled(&config, "Wiiload");
-
-    WUPSConfigCategoryHandle setting;
-    WUPSConfig_AddCategoryByNameHandled(config, "Settings", &setting);
-    WUPSConfigItemBoolean_AddToCategoryHandled(config, setting, WIILOAD_ENABLED_STRING, "Enable Wiiload", gWiiloadServerEnabled, &gServerEnabledChanged);
-
-    return config;
+    return WUPSCONFIG_API_CALLBACK_RESULT_SUCCESS;
 }
 
-WUPS_CONFIG_CLOSED() {
+static void ConfigMenuClosedCallback() {
     // Save all changes
-    if (WUPS_CloseStorage() != WUPS_STORAGE_ERROR_SUCCESS) {
+    if (WUPSStorageAPI::SaveStorage() != WUPS_STORAGE_ERROR_SUCCESS) {
         DEBUG_FUNCTION_LINE_ERR("Failed to close storage");
     }
 }
@@ -113,8 +110,8 @@ ON_APPLICATION_START() {
     initLogging();
     if (gWiiloadServerEnabled) {
         DEBUG_FUNCTION_LINE("Start wiiload thread");
-        thread = new (std::nothrow) TcpReceiver(4299);
-        if (thread == nullptr) {
+        tcpReceiverThread = std::make_unique<TcpReceiver>(4299);
+        if (tcpReceiverThread == nullptr) {
             DEBUG_FUNCTION_LINE_ERR("Failed to create wiiload thread");
         }
     } else {
@@ -123,11 +120,6 @@ ON_APPLICATION_START() {
 }
 
 ON_APPLICATION_ENDS() {
-    DEBUG_FUNCTION_LINE("Stop wiiload thread!");
-    if (thread != nullptr) {
-        delete thread;
-        thread = nullptr;
-    }
-    DEBUG_FUNCTION_LINE_VERBOSE("Done!");
+    tcpReceiverThread.reset();
     deinitLogging();
 }
