@@ -1,5 +1,5 @@
 #include "globals.h"
 
-bool gLibRPXLoaderInitDone __attribute__((section(".data")))     = false;
-bool gWiiloadServerEnabled __attribute__((section(".data")))     = true;
-bool gNotificationModuleLoaded __attribute__((section(".data"))) = true;
+bool gLibRPXLoaderInitDone                      = false;
+std::unique_ptr<TcpReceiver> gTcpReceiverThread = nullptr;
+bool gWiiloadServerEnabled                      = true;

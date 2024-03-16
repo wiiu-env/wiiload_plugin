@@ -23,7 +23,6 @@ WUMS_ROOT := $(DEVKITPRO)/wums
 TARGET		:=	wiiload
 BUILD		:=	build
 SOURCES		:=	src \
-                src/fs \
                 src/utils
 DATA		:=	data
 INCLUDES	:=	src
