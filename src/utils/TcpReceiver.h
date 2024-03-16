@@ -36,7 +36,8 @@ private:
     static TcpReceiver::eLoadResults tryLoadRPX(uint8_t *data, uint32_t fileSize, std::string &loadedPathOut);
     static TcpReceiver::eLoadResults tryLoadWPS(uint8_t *data, uint32_t fileSize);
     static TcpReceiver::eLoadResults loadBinary(void *data, uint32_t fileSize);
-    static TcpReceiver::eLoadResults uncompressIfNeeded(const uint8_t *haxx, uint32_t fileSize, uint32_t fileSizeUnc, std::unique_ptr<uint8_t> &&in_data, std::unique_ptr<uint8_t> &out_data, uint32_t &fileSizeOut);
+    static std::unique_ptr<uint8_t[]>  receiveData(int32_t clientSocket, uint32_t fileSize, eLoadResults &err);
+    static std::unique_ptr<uint8_t[]> uncompressData(uint32_t fileSize, uint32_t fileSizeUnc, std::unique_ptr<uint8_t[]> &&in_out_data, uint32_t &fileSizeOut, eLoadResults &err);
 
     bool exitRequested;
     int32_t serverPort;
