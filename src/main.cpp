@@ -9,6 +9,7 @@
 #include <rpxloader/rpxloader.h>
 #include <wups.h>
 #include <wups/config/WUPSConfigItemBoolean.h>
+#include <wups_backend/api.h>
 
 WUPS_PLUGIN_NAME("Wiiload");
 WUPS_PLUGIN_DESCRIPTION("Wiiload Server");
@@ -35,8 +36,18 @@ INITIALIZE_PLUGIN() {
     } else {
         NotificationModule_SetDefaultValue(NOTIFICATION_MODULE_NOTIFICATION_TYPE_ERROR, NOTIFICATION_MODULE_DEFAULT_OPTION_DURATION_BEFORE_FADE_OUT, 10.0f);
     }
+    PluginBackendApiErrorType res2;
+    if ((res2 = WUPSBackend_InitLibrary()) != PLUGIN_BACKEND_API_ERROR_NONE) {
+        DEBUG_FUNCTION_LINE_WARN("Failed to init WUPSBackend Api: %s", WUPSBackend_GetStatusStr(res2));
+    }
 
     InitConfigAndStorage();
+}
+
+DEINITIALIZE_PLUGIN() {
+    RPXLoader_DeInitLibrary();
+    NotificationModule_DeInitLibrary();
+    WUPSBackend_DeInitLibrary();
 }
 
 /* Entry point */
