@@ -227,22 +227,23 @@ TcpReceiver::eLoadResults TcpReceiver::loadBinary(void *data, uint32_t fileSize)
     std::string loadedPath;
     eLoadResults error;
     if ((error = tryLoadWUHB(data, fileSize, loadedPath)) != UNSUPPORTED_FORMAT || (error = tryLoadRPX((uint8_t *) data, fileSize, loadedPath)) != UNSUPPORTED_FORMAT) {
-        if (error == SUCCESS) {
-            RPXLoaderStatus launchRes;
-            if ((launchRes = RPXLoader_LaunchHomebrew(loadedPath.c_str())) != RPX_LOADER_RESULT_SUCCESS) {
-                DEBUG_FUNCTION_LINE_ERR("Failed to start %s %s", loadedPath.c_str(), RPXLoader_GetStatusStr(launchRes));
-                return LAUNCH_FAILED;
-            }
+        if (error != SUCCESS) {
+            return error;
         }
-
-        return error;
+        RPXLoaderStatus launchRes;
+        if ((launchRes = RPXLoader_LaunchHomebrew(loadedPath.c_str())) != RPX_LOADER_RESULT_SUCCESS) {
+            DEBUG_FUNCTION_LINE_ERR("Failed to start %s %s", loadedPath.c_str(), RPXLoader_GetStatusStr(launchRes));
+            return LAUNCH_FAILED;
+        }
     } else if ((error = tryLoadWPS((uint8_t *) data, fileSize)) != UNSUPPORTED_FORMAT) {
-        if (error == SUCCESS) {
-            _SYSLaunchTitleWithStdArgsInNoSplash(OSGetTitleID(), nullptr);
+        if (error != SUCCESS) {
+            return error;
         }
-        return error;
+        _SYSLaunchTitleWithStdArgsInNoSplash(OSGetTitleID(), nullptr);
+    } else {
+        return UNSUPPORTED_FORMAT;
     }
-    return UNSUPPORTED_FORMAT;
+    return SUCCESS;
 }
 
 std::unique_ptr<uint8_t[]> TcpReceiver::uncompressData(uint32_t fileSize, uint32_t fileSizeUnc, std::unique_ptr<uint8_t[]> &&inData, uint32_t &fileSizeOut, eLoadResults &err) {
