@@ -183,39 +183,41 @@ TcpReceiver::eLoadResults TcpReceiver::tryLoadRPX(uint8_t *data, uint32_t fileSi
 
 TcpReceiver::eLoadResults TcpReceiver::tryLoadWPS(uint8_t *data, uint32_t fileSize) {
     if (data[0x7] == 0xCA && data[0x8] == 0xFE && data[0x9] == 0x50 && data[0xA] == 0x4C) {
-        auto newContainer = WUPSBackend::PluginUtils::getPluginForBuffer((char *) data, fileSize);
-        if (newContainer) {
-            auto plugins = WUPSBackend::PluginUtils::getLoadedPlugins(32);
+        PluginBackendApiErrorType err;
+        auto newContainerOpt = WUPSBackend::PluginUtils::getPluginForBuffer((char *) data, fileSize, err);
+        if (newContainerOpt) {
+            auto pluginList = WUPSBackend::PluginUtils::getLoadedPlugins(err);
+            if (err != PLUGIN_BACKEND_API_ERROR_NONE) {
+                DEBUG_FUNCTION_LINE_ERR("Failed to load plugin list.");
+                return PLUGIN_PARSE_FAILED;
+            }
 
-            auto &metaInformation = newContainer.value()->getMetaInformation();
-
+            const auto &metaInformation = newContainerOpt->getMetaInformation();
             // remove plugins with the same name and author as our new plugin
-            plugins.erase(std::remove_if(plugins.begin(), plugins.end(),
-                                         [metaInformation](auto &plugin) {
-                                             return plugin->getMetaInformation()->getName() == metaInformation->getName() &&
-                                                    plugin->getMetaInformation()->getAuthor() == metaInformation->getAuthor();
-                                         }),
-                          plugins.end());
-
+            pluginList.erase(std::remove_if(pluginList.begin(), pluginList.end(),
+                                            [&metaInformation](auto &plugin) {
+                                                auto res = plugin.getMetaInformation().getName() == metaInformation.getName() &&
+                                                           plugin.getMetaInformation().getAuthor() == metaInformation.getAuthor();
+                                                return res;
+                                            }),
+                             pluginList.end());
             // add the new plugin
-            plugins.push_back(std::move(newContainer.value()));
-
+            pluginList.push_back(std::move(newContainerOpt.value()));
 #ifdef VERBOSE_DEBUG
-            for (auto &plugin : plugins) {
-                DEBUG_FUNCTION_LINE_VERBOSE("name: %s", plugin->getMetaInformation()->getName().c_str());
-                DEBUG_FUNCTION_LINE_VERBOSE("author: %s", plugin->getMetaInformation()->getAuthor().c_str());
-                DEBUG_FUNCTION_LINE_VERBOSE("handle: %08X", plugin->getPluginData()->getHandle());
+            for (const auto &plugin : pluginList) {
+                DEBUG_FUNCTION_LINE_VERBOSE("name: %s", plugin.getMetaInformation().getName().c_str());
+                DEBUG_FUNCTION_LINE_VERBOSE("author: %s", plugin.getMetaInformation().getAuthor().c_str());
+                DEBUG_FUNCTION_LINE_VERBOSE("handle: %08X", plugin.getPluginData().getHandle());
                 DEBUG_FUNCTION_LINE_VERBOSE("====");
             }
 #endif
-
-            if (WUPSBackend::PluginUtils::LoadAndLinkOnRestart(plugins) != 0) {
-                DEBUG_FUNCTION_LINE_ERR("WUPSBackend::PluginUtils::LoadAndLinkOnRestart failed");
+            if ((err = WUPSBackend::PluginUtils::LoadAndLinkOnRestart(pluginList)) != PLUGIN_BACKEND_API_ERROR_NONE) {
+                DEBUG_FUNCTION_LINE_ERR("WUPSBackend::PluginUtils::LoadAndLinkOnRestart failed. %s", WUPSBackend::GetStatusStr(err));
                 return PLUGIN_LOAD_LINK_FAILED;
             }
             return SUCCESS;
         } else {
-            DEBUG_FUNCTION_LINE_ERR("Failed to parse plugin for buffer: %08X size %d", data, fileSize);
+            DEBUG_FUNCTION_LINE_ERR("Failed to parse plugin for buffer: %08X size %d. Error: %s", data, fileSize, WUPSBackend::GetStatusStr(err));
             return PLUGIN_PARSE_FAILED;
         }
     }
