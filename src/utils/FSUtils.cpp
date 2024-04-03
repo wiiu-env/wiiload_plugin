@@ -86,7 +86,7 @@ bool FSUtils::saveBufferToFile(const char *path, void *buffer, uint32_t size) {
     int fd = open(path, O_CREAT | O_TRUNC | O_WRONLY);
     if (fd < 0) {
         DEBUG_FUNCTION_LINE_ERR("Failed to open %s. %d", path, fd);
-        return -1;
+        return false;
     }
     auto sizeToWrite = size;
     auto *ptr        = buffer;
