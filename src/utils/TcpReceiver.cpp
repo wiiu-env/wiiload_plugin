@@ -184,7 +184,8 @@ TcpReceiver::eLoadResults TcpReceiver::tryLoadRPX(uint8_t *data, uint32_t fileSi
 TcpReceiver::eLoadResults TcpReceiver::tryLoadWPS(uint8_t *data, uint32_t fileSize) {
     if (data[0x7] == 0xCA && data[0x8] == 0xFE && data[0x9] == 0x50 && data[0xA] == 0x4C) {
         PluginBackendApiErrorType err;
-        auto newContainerOpt = WUPSBackend::PluginUtils::getPluginForBuffer((char *) data, fileSize, err);
+        PluginBackendPluginParseError parseErr;
+        auto newContainerOpt = WUPSBackend::PluginUtils::getPluginForBuffer((char *) data, fileSize, err, parseErr);
         if (newContainerOpt) {
             auto pluginList = WUPSBackend::PluginUtils::getLoadedPlugins(err);
             if (err != PLUGIN_BACKEND_API_ERROR_NONE) {
