@@ -9,6 +9,7 @@
 #include <coreinit/dynload.h>
 #include <coreinit/title.h>
 #include <cstring>
+#include <nn/act.h>
 #include <notifications/notifications.h>
 #include <rpxloader/rpxloader.h>
 #include <sysapp/launch.h>
@@ -123,6 +124,9 @@ void TcpReceiver::executeThread() {
                 case LAUNCH_FAILED:
                     NotificationModule_AddErrorNotification("Wiiload plugin: Failed to launch homebrew. Launching will be aborted.");
                     break;
+                case NO_ACTIVE_ACCOUNT:
+                    NotificationModule_AddErrorNotification("Wiiload plugin: Failed to launch homebrew. No active account loaded.");
+                    break;
             }
 
             if (result == SUCCESS) {
@@ -233,6 +237,15 @@ TcpReceiver::eLoadResults TcpReceiver::loadBinary(void *data, uint32_t fileSize)
         if (error != SUCCESS) {
             return error;
         }
+
+        nn::act::Initialize();
+        bool accountLoaded = nn::act::IsSlotOccupied(nn::act::GetSlotNo());
+        nn::act::Finalize();
+
+        if (!accountLoaded) {
+            return NO_ACTIVE_ACCOUNT;
+        }
+
         RPXLoaderStatus launchRes;
         if ((launchRes = RPXLoader_LaunchHomebrew(loadedPath.c_str())) != RPX_LOADER_RESULT_SUCCESS) {
             DEBUG_FUNCTION_LINE_ERR("Failed to start %s %s", loadedPath.c_str(), RPXLoader_GetStatusStr(launchRes));
