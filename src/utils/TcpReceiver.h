@@ -18,6 +18,7 @@ public:
         NOT_ENOUGH_MEMORY       = -6,
         RECV_ERROR              = -7,
         LAUNCH_FAILED           = -8,
+        NO_ACTIVE_ACCOUNT       = -9,
     };
 
     explicit TcpReceiver(int32_t port);
