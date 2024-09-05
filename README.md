@@ -1,7 +1,7 @@
 [![CI-Release](https://github.com/wiiu-env/wiiload_plugin/actions/workflows/ci.yml/badge.svg)](https://github.com/wiiu-env/wiiload_plugin/actions/workflows/ci.yml)
 
 ## Usage
-Use the wiiload executable (located in `[DEVKITPRO]/tools/bin`) to send your plugin to your WiiU.
+Use the wiiload executable (located in `[DEVKITPRO]/tools/bin`) to send your plugin or homebrew (.rpx or .wuhb) to your WiiU.
 
 ## Installation
 (`[ENVIRONMENT]` is a placeholder for the actual environment name.)
