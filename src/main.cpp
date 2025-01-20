@@ -4,9 +4,12 @@
 #include "utils/TcpReceiver.h"
 #include "utils/logger.h"
 #include "utils/utils.h"
-#include <coreinit/debug.h>
+
 #include <notifications/notifications.h>
 #include <rpxloader/rpxloader.h>
+
+#include <coreinit/debug.h>
+
 #include <wups.h>
 #include <wups/config/WUPSConfigItemBoolean.h>
 #include <wups_backend/api.h>
