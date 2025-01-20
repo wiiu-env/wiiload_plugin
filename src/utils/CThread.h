@@ -20,6 +20,7 @@
 #include <coreinit/systeminfo.h>
 #include <coreinit/thread.h>
 #include <malloc.h>
+#include <string>
 #include <unistd.h>
 
 class CThread {

@@ -1,8 +1,13 @@
 #include "FSUtils.h"
 #include "logger.h"
+#include "utils.h"
+
 #include <cstdio>
 #include <cstring>
 #include <fcntl.h>
+#include <notifications/notification_defines.h>
+#include <notifications/notifications.h>
+#include <string>
 #include <unistd.h>
 
 bool FSUtils::CheckFile(const char *filepath) {
@@ -82,7 +87,7 @@ bool FSUtils::CreateSubfolder(const char *fullpath) {
     return true;
 }
 
-bool FSUtils::saveBufferToFile(const char *path, void *buffer, uint32_t size) {
+bool FSUtils::saveBufferToFile(const char *path, void *buffer, uint32_t size, NotificationModuleHandle notificationHandle) {
     int fd = open(path, O_CREAT | O_TRUNC | O_WRONLY);
     if (fd < 0) {
         DEBUG_FUNCTION_LINE_ERR("Failed to open %s. %d", path, fd);
@@ -93,6 +98,10 @@ bool FSUtils::saveBufferToFile(const char *path, void *buffer, uint32_t size) {
     int32_t curResult;
     int64_t totalSizeWritten = 0;
     while (sizeToWrite > 0) {
+        if (notificationHandle != 0) {
+            std::string progressStr = string_format("[Wiiload] Write data to file %.2f%%", static_cast<float>(totalSizeWritten) / static_cast<float>(size) * 100.0);
+            NotificationModule_UpdateDynamicNotificationText(notificationHandle, progressStr.c_str());
+        }
         curResult = write(fd, ptr, sizeToWrite);
         if (curResult < 0) {
             close(fd);
@@ -106,5 +115,11 @@ bool FSUtils::saveBufferToFile(const char *path, void *buffer, uint32_t size) {
         sizeToWrite -= curResult;
     }
     close(fd);
+
+    if (notificationHandle != 0) {
+        std::string progressStr = string_format("[Wiiload] Save data to file %.2f%%", static_cast<float>(totalSizeWritten) / static_cast<float>(size) * 100.0);
+        NotificationModule_UpdateDynamicNotificationText(notificationHandle, "[Wiiload] Write data to file 100%");
+    }
+
     return totalSizeWritten == size;
 }
