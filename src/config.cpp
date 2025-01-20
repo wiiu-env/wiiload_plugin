@@ -3,9 +3,11 @@
 #include "utils/TcpReceiver.h"
 #include "utils/logger.h"
 #include "utils/utils.h"
-#include <string>
+
 #include <wups/config/WUPSConfigItemBoolean.h>
 #include <wups/storage.h>
+
+#include <string>
 
 static void gServerEnabledChanged(ConfigItemBoolean *item, bool newValue) {
     if (std::string_view(WIILOAD_ENABLED_STRING) != item->identifier) {

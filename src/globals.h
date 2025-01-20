@@ -1,6 +1,6 @@
-#include "utils/TcpReceiver.h"
-#include <cstdint>
 #include <memory>
+
+class TcpReceiver;
 
 extern bool gLibRPXLoaderInitDone;
 extern std::unique_ptr<TcpReceiver> gTcpReceiverThread;
