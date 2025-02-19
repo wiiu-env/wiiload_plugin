@@ -5,7 +5,6 @@
 #include <cstdio>
 #include <cstring>
 #include <fcntl.h>
-#include <notifications/notification_defines.h>
 #include <notifications/notifications.h>
 #include <string>
 #include <unistd.h>
