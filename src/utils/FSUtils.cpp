@@ -5,7 +5,6 @@
 #include <cstdio>
 #include <cstring>
 #include <fcntl.h>
-#include <notifications/notification_defines.h>
 #include <notifications/notifications.h>
 #include <string>
 #include <unistd.h>
@@ -117,7 +116,6 @@ bool FSUtils::saveBufferToFile(const char *path, void *buffer, uint32_t size, No
     close(fd);
 
     if (notificationHandle != 0) {
-        std::string progressStr = string_format("[Wiiload] Save data to file %.2f%%", static_cast<float>(totalSizeWritten) / static_cast<float>(size) * 100.0);
         NotificationModule_UpdateDynamicNotificationText(notificationHandle, "[Wiiload] Write data to file 100%");
     }
 
